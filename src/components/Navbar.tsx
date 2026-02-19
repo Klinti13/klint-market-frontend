@@ -58,6 +58,7 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout }: Navbar
         </div>
 
       </div>
+      
     </nav>
   );
-}
+} 
