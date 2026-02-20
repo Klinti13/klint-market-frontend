@@ -10,10 +10,13 @@ export default function AdminDashboard({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders');
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
+  
+  // SHTUAR: Motori i kërkimit për Adminin
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
-    name: '', price: '', oldPrice: '', description: '', image: '', category: 'Bio', badge: ''
+    name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: ''
   });
 
   const fetchData = async () => {
@@ -63,7 +66,7 @@ export default function AdminDashboard({ user }: { user: User }) {
       }, config);
       
       setIsProductModalOpen(false);
-      setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Bio', badge: '' });
+      setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: '' });
       fetchData();
       alert("✅ Produkti u shtua me sukses!");
     } catch (err) {
@@ -71,15 +74,41 @@ export default function AdminDashboard({ user }: { user: User }) {
     }
   };
 
+  // --- MATEMATIKA E CEO-s (SHTUAR) ---
   const totalRevenue = useMemo(() => orders.reduce((acc, order) => acc + (order.totalPrice || 0), 0), [orders]);
+  
+  // Mesatarja e shpenzimit për një porosi
+  const averageOrderValue = useMemo(() => orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0, [orders, totalRevenue]);
+  
+  // Porositë që duhen nisur (Urgjente)
+  const pendingOrdersCount = useMemo(() => orders.filter(o => o.status === 'Në Pritje').length, [orders]);
+
+  // Targeti Mujor (P.sh. synimi yt është 500,000 Lekë në muaj)
+  const monthlyGoal = 500000;
+  const currentMonthRevenue = useMemo(() => {
+    const currentMonth = new Date().getMonth();
+    return orders.filter(order => new Date(order.createdAt).getMonth() === currentMonth)
+                 .reduce((acc, order) => acc + (order.totalPrice || 0), 0);
+  }, [orders]);
+  const progressPercent = Math.min(Math.round((currentMonthRevenue / monthlyGoal) * 100), 100);
+
+  // FILTRIMI I TABELËS SË POROSIVE NGA SEARCH BAR
+  const filteredOrders = useMemo(() => {
+    if (!searchTerm) return orders;
+    return orders.filter(o => 
+      o.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      o.shippingAddress?.phone.includes(searchTerm) ||
+      o._id.includes(searchTerm)
+    );
+  }, [orders, searchTerm]);
 
   if (!user.isAdmin) return <div className="p-20 text-center text-rose-500 font-black tracking-widest uppercase">Aksesi i Mohuar!</div>;
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24 relative">
       
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
-        <h1 className="text-4xl font-black text-white tracking-tighter">Panel <span className="text-emerald-500">Kryesor</span></h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+        <h1 className="text-4xl font-black text-white tracking-tighter">Qendra e <span className="text-emerald-500">Komandës</span></h1>
         <button 
           onClick={() => setIsProductModalOpen(true)}
           className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
@@ -88,27 +117,64 @@ export default function AdminDashboard({ user }: { user: User }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-slate-800/60 p-6 rounded-[2rem] border border-slate-700/50 shadow-xl">
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Porosi</p>
-          <p className="text-4xl font-black text-white">{orders.length}</p>
+      {/* --- TARGETI I MUAJIT (PROGRESS BAR) --- */}
+      <div className="bg-slate-800/40 border border-slate-700/50 rounded-[2rem] p-6 mb-8 shadow-xl">
+        <div className="flex justify-between items-end mb-3">
+          <div>
+            <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Ecuria e këtij muaji</span>
+            <h3 className="text-xl font-black text-white">{currentMonthRevenue.toLocaleString()} L <span className="text-slate-500 text-sm">/ {monthlyGoal.toLocaleString()} L</span></h3>
+          </div>
+          <span className="text-emerald-400 font-black text-xl">{progressPercent}%</span>
         </div>
-        <div className="bg-emerald-500/10 p-6 rounded-[2rem] border border-emerald-500/20 shadow-xl">
-          <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2">Të Ardhurat</p>
-          <p className="text-4xl font-black text-emerald-400">{totalRevenue.toLocaleString()} L</p>
-        </div>
-        <div className="bg-indigo-500/10 p-6 rounded-[2rem] border border-indigo-500/20 shadow-xl">
-          <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-2">Produkte Live</p>
-          <p className="text-4xl font-black text-indigo-400">{products.length}</p>
+        <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-slate-700/50">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-400 h-3 rounded-full transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
         </div>
       </div>
 
-      <div className="flex gap-4 mb-6">
-        <button onClick={() => setActiveTab('orders')} className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'orders' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>📦 Porositë</button>
-        <button onClick={() => setActiveTab('products')} className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>🏷️ Produktet</button>
+      {/* --- KUTITË E INTELIGJENCËS (4 KUTI TANI) --- */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10">
+        <div className="bg-emerald-500/10 p-5 sm:p-6 rounded-[2rem] border border-emerald-500/20 shadow-xl">
+          <p className="text-emerald-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Të Ardhurat</p>
+          <p className="text-2xl sm:text-4xl font-black text-emerald-400">{totalRevenue.toLocaleString()} L</p>
+        </div>
+        <div className="bg-slate-800/60 p-5 sm:p-6 rounded-[2rem] border border-slate-700/50 shadow-xl">
+          <p className="text-slate-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Mesatarja / Porosi</p>
+          <p className="text-2xl sm:text-4xl font-black text-white">{averageOrderValue.toLocaleString()} L</p>
+        </div>
+        <div className="bg-rose-500/10 p-5 sm:p-6 rounded-[2rem] border border-rose-500/20 shadow-xl relative overflow-hidden">
+          {pendingOrdersCount > 0 && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/20 rounded-bl-full animate-pulse"></div>}
+          <p className="text-rose-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Në Pritje (Urgjente)</p>
+          <p className="text-2xl sm:text-4xl font-black text-rose-400">{pendingOrdersCount}</p>
+        </div>
+        <div className="bg-indigo-500/10 p-5 sm:p-6 rounded-[2rem] border border-indigo-500/20 shadow-xl">
+          <p className="text-indigo-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Produkte Live</p>
+          <p className="text-2xl sm:text-4xl font-black text-indigo-400">{products.length}</p>
+        </div>
       </div>
 
-      {/* ZGJIDHJA PËR MOBILE: Këtu ndodh magjia. overflow-x-auto e lejon të rrëshqasë, min-w-[800px] i mban elementet të rregullta. */}
+      {/* TABS DHE SEARCH BAR */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex gap-4">
+          <button onClick={() => setActiveTab('orders')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'orders' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>📦 Porositë</button>
+          <button onClick={() => setActiveTab('products')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>🏷️ Produktet</button>
+        </div>
+        
+        {/* SEARCH BAR I ADMINIT */}
+        {activeTab === 'orders' && (
+          <div className="relative w-full sm:w-64">
+            <input 
+              type="text" 
+              placeholder="Kërko klient ose tel..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-xl py-2.5 px-4 pl-10 text-xs text-white focus:border-emerald-500 outline-none transition-all"
+            />
+            <svg className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+          </div>
+        )}
+      </div>
+
+      {/* TABELAT */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto shadow-2xl">
         {activeTab === 'orders' ? (
           <table className="w-full text-left border-collapse min-w-[800px]">
@@ -123,7 +189,8 @@ export default function AdminDashboard({ user }: { user: User }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {orders.map((order: any) => (
+              {/* Tani bejme MAP filteredOrders dhe jo orders */}
+              {filteredOrders.map((order: any) => (
                 <tr key={order._id} className="hover:bg-slate-800/30 transition-colors">
                   <td className="p-6 text-white font-bold whitespace-nowrap">{order.user?.name || "I panjohur"}</td>
                   <td className="p-6 text-slate-400 text-xs font-medium whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString('sq-AL')}</td>
@@ -145,6 +212,11 @@ export default function AdminDashboard({ user }: { user: User }) {
                   </td>
                 </tr>
               ))}
+              {filteredOrders.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">Nuk u gjet asnjë porosi.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         ) : (
@@ -182,7 +254,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         )}
       </div>
 
-      {/* MODALI I FSHIRJES */}
+      {/* MODALET E FSHIRJES DHE SHTIMIT MBETEN TË NJËJTA... */}
       {orderToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center animate-in fade-in zoom-in duration-200">
@@ -196,7 +268,6 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       )}
 
-      {/* MODALI I SHTIMIT */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 my-8">
