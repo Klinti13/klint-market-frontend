@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import type { User } from '../types';
 
 interface NavbarProps {
@@ -7,24 +7,42 @@ interface NavbarProps {
   user: User;
   onOpenAuth: () => void;
   onLogout: () => void;
-  // KËTU ËSHTË ZGJIDHJA E ERRORIT TËND:
   searchTerm?: string;
   onSearchChange?: (term: string) => void;
 }
 
 export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTerm, onSearchChange }: NavbarProps) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // FUNKSIONI QE BEN SCROLL-IN INTELIGJENT
+  const handleCategoryClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // 1. Nëse nuk jemi në faqen kryesore, shkojmë njëherë atje
+    if (location.pathname !== '/') {
+      navigate('/');
+      // I japim pak kohë faqes të ngarkohet para se të zbresim poshtë
+      setTimeout(() => {
+        const element = document.getElementById('kategorite');
+        element?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    } else {
+      // 2. Nëse jemi te Home, thjesht zbresim poshtë "Smooth"
+      const element = document.getElementById('kategorite');
+      element?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <nav className="bg-slate-900 border-b border-slate-800 p-4 sm:p-5 sticky top-0 z-40 shadow-2xl">
       <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
         
-        {/* LOGO */}
         <Link to="/" className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter shrink-0">
           E-Marketi
         </Link>
         
-        {/* SEARCH BAR (Për Laptop/Tablet) */}
         <div className="hidden md:block flex-1 max-w-md mx-4">
           <div className="relative group">
             <input 
@@ -40,16 +58,22 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
 
         <div className="flex items-center gap-4 sm:gap-6 shrink-0">
           
-          {/* LINQET E REJA */}
           <div className="hidden lg:flex items-center gap-6 text-sm font-bold mr-2">
             <Link to="/" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Marketi</Link>
-            <a href="#kategorite" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Kategoritë</a>
+            
+            {/* KETU NDRYSHUAM LINKUN E KATEGORIVE */}
+            <button 
+              onClick={handleCategoryClick} 
+              className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px] font-bold"
+            >
+              Kategoritë
+            </button>
+
             <Link to="/about" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Historia</Link>
           </div>
           
           <div className="hidden lg:block h-6 w-px bg-slate-700"></div>
 
-          {/* SEKSIONI I PËRDORUESIT */}
           {user.isLoggedIn ? (
             <div className="flex items-center gap-4 sm:gap-6">
               {user.isAdmin && (
@@ -78,7 +102,6 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
             </button>
           )}
 
-          {/* BUTONI I SHPORTËS */}
           <Link to="/cart" className="relative flex items-center bg-emerald-500/10 hover:bg-emerald-500/20 px-4 py-2 rounded-full transition-all border border-emerald-500/20 group">
             <svg className="w-6 h-6 text-emerald-400 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -92,7 +115,6 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
         </div>
       </div>
 
-      {/* SEARCH BAR PËR MOBILE (Shfaqet vetëm në ekrane të vogla) */}
       <div className="mt-4 md:hidden">
         <div className="relative group">
           <input 
@@ -106,7 +128,6 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
         </div>
       </div>
 
-      {/* MODAL I KONFIRMIMIT TË DALJES */}
       {showConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center animate-in fade-in zoom-in duration-200">
