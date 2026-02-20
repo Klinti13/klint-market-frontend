@@ -20,16 +20,13 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
   const handleCategoryClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // 1. Nëse nuk jemi në faqen kryesore, shkojmë njëherë atje
     if (location.pathname !== '/') {
       navigate('/');
-      // I japim pak kohë faqes të ngarkohet para se të zbresim poshtë
       setTimeout(() => {
         const element = document.getElementById('kategorite');
         element?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
     } else {
-      // 2. Nëse jemi te Home, thjesht zbresim poshtë "Smooth"
       const element = document.getElementById('kategorite');
       element?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -61,13 +58,35 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
           <div className="hidden lg:flex items-center gap-6 text-sm font-bold mr-2">
             <Link to="/" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Marketi</Link>
             
-            {/* KETU NDRYSHUAM LINKUN E KATEGORIVE */}
-            <button 
-              onClick={handleCategoryClick} 
-              className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px] font-bold"
-            >
-              Kategoritë
-            </button>
+            {/* --- KËTU FILLON MAGJIA E DROPDOWN-IT DINAMIK --- */}
+            <div className="relative group py-2">
+              <button 
+                onClick={handleCategoryClick} 
+                className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px] font-bold flex items-center gap-1"
+              >
+                Kategoritë
+                {/* Shigjeta e vogel qe kthehet poshte kur i kalon mausin */}
+                <svg className="w-3 h-3 group-hover:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
+              </button>
+
+              {/* MENUJA RËNËSE (Dropdown) - Shfaqet vetëm kur i kalon mausin (hover) */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-4 group-hover:translate-y-0 overflow-hidden z-50">
+                <div className="p-2 flex flex-col">
+                  {/* Lista e kategorive - mund t'i ndryshosh si të duash */}
+                  {['Veshje', 'Aksesorë', 'Teknologji', 'Këpucë', 'Ushqime Bio'].map((cat) => (
+                    <button 
+                      key={cat}
+                      onClick={handleCategoryClick} // Për momentin thjesht të zbret poshtë te seksioni
+                      className="text-left px-4 py-3 text-[10px] font-black text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all tracking-widest uppercase flex items-center justify-between group/item"
+                    >
+                      {cat}
+                      <span className="opacity-0 group-hover/item:opacity-100 transition-opacity text-emerald-500">→</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* --- FUNDI I DROPDOWN-IT --- */}
 
             <Link to="/about" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Historia</Link>
           </div>
