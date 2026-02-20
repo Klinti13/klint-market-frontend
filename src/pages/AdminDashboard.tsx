@@ -221,7 +221,7 @@ const updateStatus = async (orderId: string, newStatus: string) => {
             <form onSubmit={handleAddProduct} className="space-y-4">
               <div>
                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Emri i Produktit *</label>
-                <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="p.sh. Këmishë Lino" />
+                <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="p.sh. Fruta.." />
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -237,12 +237,12 @@ const updateStatus = async (orderId: string, newStatus: string) => {
 
               <div>
                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Kategoria *</label>
-                <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="Veshje, Bio..." />
+                <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="Bulmet, Bio..." />
               </div>
 
               <div>
                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Etiketa (Badge)</label>
-                <input type="text" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="EKSKLUZIVE..." />
+                <input type="text" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="E Re, Bio..." />
               </div>
 
               <div>

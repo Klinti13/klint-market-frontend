@@ -55,12 +55,12 @@ export default function About() {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-4 mt-8">
-            <img src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=800&auto=format&fit=crop" alt="Detail 1" className="w-full h-48 sm:h-64 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
-            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=800&auto=format&fit=crop" alt="Detail 2" className="w-full h-32 sm:h-48 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
+            <img src="https://images.unsplash.com/photo-1583258292688-d0213dc5a3a8?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Detail 1" className="w-full h-48 sm:h-64 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
+            <img src="https://images.unsplash.com/photo-1628102491629-778571d893a3?q=80&w=1480&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Detail 2" className="w-full h-32 sm:h-48 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
           </div>
           <div className="space-y-4">
-            <img src="https://images.unsplash.com/photo-1555529771-835f59fc5efe?q=80&w=800&auto=format&fit=crop" alt="Detail 3" className="w-full h-32 sm:h-48 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
-            <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?q=80&w=800&auto=format&fit=crop" alt="Detail 4" className="w-full h-48 sm:h-64 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
+            <img src="https://images.unsplash.com/photo-1601599561213-832382fd07ba?q=80&w=1364&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Detail 3" className="w-full h-32 sm:h-48 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
+            <img src="https://images.unsplash.com/photo-1770392171407-28f7de0aa258?q=80&w=2342&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Detail 4" className="w-full h-48 sm:h-64 object-cover rounded-[2rem] border border-slate-800 shadow-xl" />
           </div>
         </div>
       </div>
