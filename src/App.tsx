@@ -47,7 +47,6 @@ function App() {
     setUser(prev => ({ ...prev, points: newPoints }));
   };
 
-  // URDHRI I RI: Përditëson të dhënat e klientit (si adresa/telefoni) pa bërë logout
   const handleUpdateUser = (updatedFields: Partial<User>) => {
     setUser(prev => ({ ...prev, ...updatedFields }));
   };
@@ -58,12 +57,8 @@ function App() {
     
     try {
       const endpoint = authMode === 'login' ? 'login' : 'register';
-      const payload = authMode === 'login' 
-        ? { email, password } 
-        : { name, email, password };
-
+      const payload = authMode === 'login' ? { email, password } : { name, email, password };
       const { data } = await axios.post(`${API_URL}/api/users/${endpoint}`, payload);
-      
       setUser({ ...data, isLoggedIn: true, points: data.points || 0 });      
       setIsAuthOpen(false);
       setEmail('');
@@ -84,9 +79,7 @@ function App() {
     setCartItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
       if (existingItem) {
-        return prevItems.map(item => 
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
-        );
+        return prevItems.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
       }
       return [...prevItems, { ...product, qty: 1 }];
     });
@@ -94,9 +87,7 @@ function App() {
 
   function handleUpdateQty(id: any, newQty: number) {
     if (newQty < 1) return;
-    setCartItems(prevItems => 
-      prevItems.map(item => item.id === id ? { ...item, qty: newQty } : item)
-    );
+    setCartItems(prevItems => prevItems.map(item => item.id === id ? { ...item, qty: newQty } : item));
   }
 
   function handleRemoveFromCart(id: any) {
@@ -110,41 +101,21 @@ function App() {
       <div className="min-h-screen bg-[#0b1120] text-slate-200 font-sans selection:bg-emerald-500/30 pb-24 sm:pb-0 relative print:bg-white">
         
         <div className="print:hidden">
-          <Navbar 
-            cartCount={totalCartCount} 
-            user={user} 
-            onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} 
-            onLogout={handleLogout} 
-            searchTerm={searchTerm} onSearchChange={setSearchTerm} 
-          />
+          <Navbar cartCount={totalCartCount} user={user} onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} onLogout={handleLogout} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
         </div>
         
         <Routes>
           <Route path="/" element={<Home onAddToCart={handleAddToCart} searchTerm={searchTerm} />} />
           <Route path="/admin" element={<AdminDashboard user={user} />} />
           <Route path="/about" element={<About />} />
-          <Route path="/cart" element={
-            <Cart 
-              items={cartItems} 
-              user={user}
-              onUpdateQty={handleUpdateQty} 
-              onRemove={handleRemoveFromCart}
-              onClearCart={() => setCartItems([])}
-              onUpdatePoints={handleUpdatePoints}
-              onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }}
-              onUpdateUser={handleUpdateUser} // LIDHJA E RE KËTU
-            />
-          } />
-          <Route path="/profile" element={<Profile user={user} />} />
+          <Route path="/cart" element={<Cart items={cartItems} user={user} onUpdateQty={handleUpdateQty} onRemove={handleRemoveFromCart} onClearCart={() => setCartItems([])} onUpdatePoints={handleUpdatePoints} onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} onUpdateUser={handleUpdateUser} />} />
+          
+          {/* 👇 KËTU ËSHTË NDRYSHIMI: I dhamë Profilit fuqinë të përditësojë të dhënat */}
+          <Route path="/profile" element={<Profile user={user} onUpdateUser={handleUpdateUser} />} />
         </Routes>
 
         <div className="print:hidden">
-          <MobileNav 
-            cartCount={totalCartCount} 
-            user={user} 
-            onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} 
-            onLogout={handleLogout} 
-          />
+          <MobileNav cartCount={totalCartCount} user={user} onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} onLogout={handleLogout} />
         </div>
 
         {isAuthOpen && (
@@ -179,31 +150,16 @@ function App() {
         <footer className="bg-slate-900 border-t border-slate-800 py-12 mt-10 hidden sm:block print:hidden">
           <div className="max-w-7xl mx-auto px-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
-              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-2">
-                E-Marketi
-              </h2>
-              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
-                © {new Date().getFullYear()} Të gjitha të drejtat e rezervuara.
-              </p>
+              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-2">E-Marketi</h2>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">© {new Date().getFullYear()} Të gjitha të drejtat e rezervuara.</p>
             </div>
-            
             <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400">
               <a href="#" className="hover:text-emerald-400 transition-colors">Privatësia</a>
               <a href="#" className="hover:text-emerald-400 transition-colors">Kushtet</a>
               <a href="#" className="hover:text-emerald-400 transition-colors">Kontakti</a>
             </div>
-            
-            <div className="flex gap-4">
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-emerald-500 hover:text-slate-900 transition-all cursor-pointer">
-                <span className="font-black text-xs">IG</span>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-emerald-500 hover:text-slate-900 transition-all cursor-pointer">
-                <span className="font-black text-xs">FB</span>
-              </div>
-            </div>
           </div>
         </footer>
-
       </div>
     </Router>
   );

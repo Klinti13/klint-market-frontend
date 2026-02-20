@@ -11,7 +11,7 @@ interface CartProps {
   onClearCart: () => void;
   onUpdatePoints: (points: number) => void;
   onOpenAuth: () => void; 
-  onUpdateUser: (fields: Partial<User>) => void; // SHTUAR TANI
+  onUpdateUser: (fields: Partial<User>) => void;
 }
 
 export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, onUpdatePoints, onOpenAuth, onUpdateUser }: CartProps) {
@@ -70,7 +70,6 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
 
       const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, orderData, config);      
       
-      // KËTU ËSHTË ZGJIDHJA: Nëse klienti shkruan një adresë të re, ruaje dhe përditëso gjithë faqen.
       if (address !== user.address || phone !== user.phone) {
           try {
              const { data: updatedProfile } = await axios.put(`${import.meta.env.VITE_API_URL}/api/users/profile`, { address, city, phone }, config);

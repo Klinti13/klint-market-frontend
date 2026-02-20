@@ -5,9 +5,7 @@ export interface User {
   token?: string;
   isAdmin?: boolean;
   isLoggedIn: boolean;
-  points?: number; // E detyrueshme për sistemin e besnikërisë
-  
-  // 👇 SHTUAR TANI PËR AUTOFILL-in e Adresës
+  points?: number; 
   address?: string;
   city?: string;
   phone?: string;
