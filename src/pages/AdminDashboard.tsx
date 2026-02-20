@@ -11,9 +11,10 @@ export default function AdminDashboard({ user }: { user: User }) {
   const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders');
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   
-  // SHTUAR: Motori i kërkimit për Adminin
   const [searchTerm, setSearchTerm] = useState('');
 
+  // STATE PËR FATURËN DHE PRODUKTET
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null); // Hap detajet e porosisë
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: ''
@@ -39,6 +40,9 @@ export default function AdminDashboard({ user }: { user: User }) {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: newStatus }, config);
       fetchData(); 
+      if (selectedInvoice && selectedInvoice._id === orderId) {
+        setSelectedInvoice({ ...selectedInvoice, status: newStatus });
+      }
     } catch (err) {
       alert("Gabim gjatë përditësimit të statusit. Kontrollo Backend-in!");
     }
@@ -74,16 +78,10 @@ export default function AdminDashboard({ user }: { user: User }) {
     }
   };
 
-  // --- MATEMATIKA E CEO-s (SHTUAR) ---
   const totalRevenue = useMemo(() => orders.reduce((acc, order) => acc + (order.totalPrice || 0), 0), [orders]);
-  
-  // Mesatarja e shpenzimit për një porosi
   const averageOrderValue = useMemo(() => orders.length > 0 ? Math.round(totalRevenue / orders.length) : 0, [orders, totalRevenue]);
-  
-  // Porositë që duhen nisur (Urgjente)
   const pendingOrdersCount = useMemo(() => orders.filter(o => o.status === 'Në Pritje').length, [orders]);
 
-  // Targeti Mujor (P.sh. synimi yt është 500,000 Lekë në muaj)
   const monthlyGoal = 500000;
   const currentMonthRevenue = useMemo(() => {
     const currentMonth = new Date().getMonth();
@@ -92,7 +90,6 @@ export default function AdminDashboard({ user }: { user: User }) {
   }, [orders]);
   const progressPercent = Math.min(Math.round((currentMonthRevenue / monthlyGoal) * 100), 100);
 
-  // FILTRIMI I TABELËS SË POROSIVE NGA SEARCH BAR
   const filteredOrders = useMemo(() => {
     if (!searchTerm) return orders;
     return orders.filter(o => 
@@ -113,11 +110,10 @@ export default function AdminDashboard({ user }: { user: User }) {
           onClick={() => setIsProductModalOpen(true)}
           className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
         >
-          <span>➕</span> Shto Produkt
+          Shto Produkt
         </button>
       </div>
 
-      {/* --- TARGETI I MUAJIT (PROGRESS BAR) --- */}
       <div className="bg-slate-800/40 border border-slate-700/50 rounded-[2rem] p-6 mb-8 shadow-xl">
         <div className="flex justify-between items-end mb-3">
           <div>
@@ -131,7 +127,6 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       </div>
 
-      {/* --- KUTITË E INTELIGJENCËS (4 KUTI TANI) --- */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10">
         <div className="bg-emerald-500/10 p-5 sm:p-6 rounded-[2rem] border border-emerald-500/20 shadow-xl">
           <p className="text-emerald-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Të Ardhurat</p>
@@ -143,7 +138,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
         <div className="bg-rose-500/10 p-5 sm:p-6 rounded-[2rem] border border-rose-500/20 shadow-xl relative overflow-hidden">
           {pendingOrdersCount > 0 && <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/20 rounded-bl-full animate-pulse"></div>}
-          <p className="text-rose-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Në Pritje (Urgjente)</p>
+          <p className="text-rose-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Në Pritje</p>
           <p className="text-2xl sm:text-4xl font-black text-rose-400">{pendingOrdersCount}</p>
         </div>
         <div className="bg-indigo-500/10 p-5 sm:p-6 rounded-[2rem] border border-indigo-500/20 shadow-xl">
@@ -152,14 +147,12 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       </div>
 
-      {/* TABS DHE SEARCH BAR */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex gap-4">
-          <button onClick={() => setActiveTab('orders')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'orders' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>📦 Porositë</button>
-          <button onClick={() => setActiveTab('products')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>🏷️ Produktet</button>
+          <button onClick={() => setActiveTab('orders')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'orders' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>Porositë</button>
+          <button onClick={() => setActiveTab('products')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>Produktet</button>
         </div>
         
-        {/* SEARCH BAR I ADMINIT */}
         {activeTab === 'orders' && (
           <div className="relative w-full sm:w-64">
             <input 
@@ -174,47 +167,54 @@ export default function AdminDashboard({ user }: { user: User }) {
         )}
       </div>
 
-      {/* TABELAT */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto shadow-2xl">
         {activeTab === 'orders' ? (
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr className="bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
-                <th className="p-6">Klienti</th>
-                <th className="p-6">Data</th>
-                <th className="p-6">Adresa & Tel</th>
+                <th className="p-6">ID Faturës</th>
+                <th className="p-6">Klienti & Tel</th>
                 <th className="p-6">Totali</th>
                 <th className="p-6">Statusi</th>
-                <th className="p-6">Veprime</th>
+                <th className="p-6 text-right">Veprime</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {/* Tani bejme MAP filteredOrders dhe jo orders */}
               {filteredOrders.map((order: any) => (
                 <tr key={order._id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="p-6 text-white font-bold whitespace-nowrap">{order.user?.name || "I panjohur"}</td>
-                  <td className="p-6 text-slate-400 text-xs font-medium whitespace-nowrap">{new Date(order.createdAt).toLocaleDateString('sq-AL')}</td>
+                  <td className="p-6 font-mono text-xs text-slate-300">#{order._id.slice(-8).toUpperCase()}</td>
                   <td className="p-6">
-                    <p className="text-white text-sm truncate max-w-[200px]">{order.shippingAddress?.address || "Pa Adresë"}</p>
+                    <p className="text-white font-bold">{order.user?.name || "I panjohur"}</p>
                     <p className="text-emerald-500 text-xs font-bold">{order.shippingAddress?.phone || "Pa Telefon"}</p>
                   </td>
-                  <td className="p-6 text-white font-black whitespace-nowrap">{order.totalPrice.toLocaleString()} L</td>
-                  <td className="p-6 whitespace-nowrap">
+                  <td className="p-6 text-white font-black">{order.totalPrice.toLocaleString()} L</td>
+                  <td className="p-6">
                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase border ${
                       order.status === 'Porosia u dërgua' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
                       order.status === 'Porosia u mor' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     }`}>{order.status || 'Në Pritje'}</span>
                   </td>
-                  <td className="p-6 flex gap-2">
-                    <button onClick={() => updateStatus(order._id, 'Porosia u mor')} className="w-8 h-8 flex shrink-0 items-center justify-center bg-blue-500/10 text-blue-400 rounded-lg border hover:bg-blue-500 hover:text-white transition-all" title="Porosia u mor">🚀</button>
-                    <button onClick={() => updateStatus(order._id, 'Porosia u dërgua')} className="w-8 h-8 flex shrink-0 items-center justify-center bg-emerald-500/10 text-emerald-400 rounded-lg border hover:bg-emerald-500 hover:text-white transition-all" title="Porosia u dërgua">💵</button>
-                    <button onClick={() => setOrderToDelete(order._id)} className="w-8 h-8 flex shrink-0 items-center justify-center bg-rose-500/10 text-rose-400 rounded-lg border hover:bg-rose-500 hover:text-white transition-all ml-2" title="Fshi">🗑️</button>
+                  <td className="p-6 text-right space-x-2">
+                    {/* BUTONI I RI PËR FATURËN ME FJALË */}
+                    <button 
+                      onClick={() => setSelectedInvoice(order)} 
+                      className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:border-slate-500 transition-all text-[9px] font-black uppercase tracking-widest"
+                    >
+                      Shiko Faturën
+                    </button>
+                    {/* BUTONI I FSHIRJES ME FJALË */}
+                    <button 
+                      onClick={() => setOrderToDelete(order._id)} 
+                      className="px-4 py-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest"
+                    >
+                      Fshi
+                    </button>
                   </td>
                 </tr>
               ))}
               {filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">Nuk u gjet asnjë porosi.</td>
+                  <td colSpan={5} className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">Nuk u gjet asnjë porosi.</td>
                 </tr>
               )}
             </tbody>
@@ -244,7 +244,7 @@ export default function AdminDashboard({ user }: { user: User }) {
                   <td className="p-6 text-white font-black whitespace-nowrap">{p.price.toLocaleString()} L</td>
                   <td className="p-6 text-right">
                     <button onClick={() => setOrderToDelete(p._id)} className="px-4 py-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest active:scale-95">
-                      🗑️ Fshi Produktin
+                      Fshi Produktin
                     </button>
                   </td>
                 </tr>
@@ -254,7 +254,69 @@ export default function AdminDashboard({ user }: { user: User }) {
         )}
       </div>
 
-      {/* MODALET E FSHIRJES DHE SHTIMIT MBETEN TË NJËJTA... */}
+      {/* --- MODALI I FATURËS SË PLOTË (SHTUAR TANI) --- */}
+      {selectedInvoice && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl relative my-8">
+            <button onClick={() => setSelectedInvoice(null)} className="absolute top-6 right-6 text-slate-400 hover:text-white">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            
+            <div className="border-b border-slate-800 pb-6 mb-6">
+              <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-1">E-Marketi</h2>
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Fatura #{selectedInvoice._id.slice(-8).toUpperCase()}</p>
+              <p className="text-slate-500 text-[10px] mt-1">{new Date(selectedInvoice.createdAt).toLocaleString('sq-AL')}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 bg-slate-800/30 p-6 rounded-2xl border border-slate-800">
+              <div>
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Të dhënat e Klientit</h4>
+                <p className="text-white font-bold">{selectedInvoice.user?.name || "I panjohur"}</p>
+                <p className="text-emerald-400 font-medium text-sm mt-1">{selectedInvoice.shippingAddress?.phone}</p>
+              </div>
+              <div>
+                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Adresa e Dërgesës</h4>
+                <p className="text-slate-300 text-sm leading-relaxed">{selectedInvoice.shippingAddress?.address}</p>
+                <p className="text-slate-400 text-xs mt-1">{selectedInvoice.shippingAddress?.city}</p>
+              </div>
+            </div>
+
+            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Artikujt e Porositur</h4>
+            <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50 mb-8 max-h-60 overflow-y-auto custom-scrollbar">
+              <ul className="divide-y divide-slate-700/50">
+                {selectedInvoice.orderItems.map((item: any, index: number) => (
+                  <li key={index} className="py-3 flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover border border-slate-700" />
+                      <div>
+                        <p className="text-white font-bold text-sm">{item.name}</p>
+                        <p className="text-slate-400 text-xs">Sasia: {item.qty}</p>
+                      </div>
+                    </div>
+                    <p className="text-emerald-400 font-black">{(item.price * item.qty).toLocaleString()} L</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex justify-between items-end border-t border-slate-800 pt-6 mb-8">
+              <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Totali për t'u paguar:</span>
+              <span className="text-3xl font-black text-white">{selectedInvoice.totalPrice.toLocaleString()} L</span>
+            </div>
+
+            <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ndrysho Statusin:</span>
+              <div className="flex gap-2">
+                <button onClick={() => updateStatus(selectedInvoice._id, 'Porosia u mor')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${selectedInvoice.status === 'Porosia u mor' ? 'bg-blue-500 text-white border-blue-500' : 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500 hover:text-white'}`}>U Mor</button>
+                <button onClick={() => updateStatus(selectedInvoice._id, 'Porosia u dërgua')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${selectedInvoice.status === 'Porosia u dërgua' ? 'bg-emerald-500 text-slate-900 border-emerald-500' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500 hover:text-slate-900'}`}>U Dërgua</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* MODALET E TJERA (Fshirja dhe Shtimi i produktit) */}
       {orderToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center animate-in fade-in zoom-in duration-200">
