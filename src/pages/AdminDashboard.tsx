@@ -14,7 +14,7 @@ export default function AdminDashboard({ user }: { user: User }) {
   // STATE PER PRODUKTET E REJA
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
-    name: '', price: '', oldPrice: '', image: '', category: 'Veshje', badge: ''
+    name: '', price: '', oldPrice: '', image: '', category: '', badge: ''
   });
 
   // NDRYSHUAR: Merr te dyja te dhenat nga databaza
