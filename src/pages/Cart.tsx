@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import type { CartItem, User } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,9 +15,11 @@ interface CartProps {
 
 export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, onUpdatePoints, onOpenAuth }: CartProps) {
   const navigate = useNavigate();
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('Elbasan'); 
-  const [phone, setPhone] = useState('');
+  
+  // MAGJIA 1: Marrim adresën automatikisht nga profili i userit, jo më bosh ('')
+  const [address, setAddress] = useState(user?.address || '');
+  const [city, setCity] = useState(user?.city || 'Elbasan'); 
+  const [phone, setPhone] = useState(user?.phone || '');
   
   const [useVipCard, setUseVipCard] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -26,6 +28,15 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
   const [showSuccess, setShowSuccess] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [deductedPoints, setDeductedPoints] = useState(0); 
+
+  // Përditëso adresën nëse logimi ndodh mbasi faqja është ngarkuar
+  useEffect(() => {
+    if (user.isLoggedIn) {
+      if (user.address) setAddress(user.address);
+      if (user.city) setCity(user.city);
+      if (user.phone) setPhone(user.phone);
+    }
+  }, [user]);
 
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
   
@@ -51,6 +62,7 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
     setIsProcessing(true);
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      
       const orderData = {
         orderItems: items.map(item => ({ name: item.name, qty: item.qty, image: item.image, price: item.price, product: item.id })),
         shippingAddress: { address, city, phone },
@@ -58,8 +70,21 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
         useVipPoints: useVipCard
       };
 
+      // 1. Krijojmë porosinë si zakonisht
       const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, orderData, config);      
       
+      // MAGJIA 2: Në heshtje, i themi serverit të ruajë këtë adresë te profili i klientit
+      // Kështu herën tjetër e gjen gati!
+      if (address !== user.address || phone !== user.phone) {
+          try {
+             await axios.put(`${import.meta.env.VITE_API_URL}/api/users/profile`, { address, city, phone }, config);
+             // Kujdes: Ne nuk e prekim local storage këtu direkt, por herën tjetër që 
+             // klienti logohet ose blen, ai i ka gati të dhënat.
+          } catch (profileErr) {
+             console.error("Nuk arritëm të ruanim adresën për herë tjetër, por porosia kaloi!");
+          }
+      }
+
       if (data.points !== undefined) {
         setEarnedPoints(Math.floor(totalPrice / 100));
         if (useVipCard) setDeductedPoints(1000);
@@ -94,19 +119,15 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
             {items.map(item => (
               <li key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 hover:bg-slate-800/60 transition-colors relative">
                 
-                {/* NDËRHYRJA PËR MOBILE: E gjithë përmbajtja në një bllok për ta menaxhuar më lehtë */}
                 <div className="flex items-center gap-4 w-full">
-                  {/* Fotoja e produktit */}
                   <img src={item.image} alt="" className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-2xl border border-slate-700 shadow-lg shrink-0" />
                   
-                  {/* Emri dhe Çmimi (Line-clamp për të mos shtyrë butonat) */}
                   <div className="flex-grow min-w-0 pr-8 sm:pr-0"> 
                     <h3 className="text-base sm:text-lg font-bold text-slate-100 line-clamp-2 leading-tight mb-1">{item.name}</h3>
                     <p className="text-emerald-400 font-black text-sm sm:text-base">{item.price.toLocaleString()} L</p>
                   </div>
                 </div>
 
-                {/* Butonat e sasisë dhe "Fshi" vendosen poshtë në celular, ose djathtas në PC */}
                 <div className="flex items-center justify-between w-full sm:w-auto mt-2 sm:mt-0 pl-24 sm:pl-0">
                   <div className="flex items-center bg-slate-900 rounded-xl p-1 border border-slate-700/50">
                     <button onClick={() => onUpdateQty(item.id, item.qty - 1)} className="px-3 py-1 sm:py-2 text-slate-400 active:scale-95" disabled={item.qty <= 1}>-</button>
@@ -115,7 +136,6 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
                   </div>
                 </div>
 
-                {/* Butoni i Fshirjes (Absolute në celular për të ndenjur gjithmonë në cep lart-djathtas) */}
                 <button 
                   onClick={() => onRemove(item.id)} 
                   className="absolute top-4 right-4 sm:relative sm:top-0 sm:right-0 p-2 sm:p-3 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
@@ -128,7 +148,6 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
           </ul>
         </div>
 
-        {/* FORMA E ADRESËS */}
         <div className={`bg-slate-800/40 border transition-all duration-300 rounded-[2rem] p-6 sm:p-8 shadow-2xl ${addressError ? 'border-rose-500/50 bg-rose-500/5' : 'border-slate-700/50'}`}>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-widest">Adresa e Dërgesës</h2>
@@ -152,7 +171,6 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
         </div>
       </div>
 
-      {/* PËRMBLEDHJA (SUMMARY) */}
       <div className="bg-slate-800/60 p-6 sm:p-8 rounded-[2rem] border border-slate-700/50 h-max lg:sticky lg:top-28 shadow-2xl mt-8 lg:mt-0">
          <h2 className="text-xl sm:text-2xl font-black text-white mb-6 border-b border-slate-700/50 pb-6">Përmbledhja</h2>
          <div className="space-y-4 text-slate-300 mb-8 border-b border-slate-700/50 pb-8 text-sm sm:text-base">
@@ -168,7 +186,6 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
            )}
          </div>
 
-         {/* SEKSIONI I KARTËS VIP */}
          <div className="mb-8 border border-slate-700/50 rounded-2xl p-4 bg-slate-900/50">
            <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">VIP Card</label>
            {user.isLoggedIn ? (
