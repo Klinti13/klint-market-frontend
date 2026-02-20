@@ -8,7 +8,7 @@ import Cart from './pages/Cart';
 import Profile from './pages/Profile'; 
 import type { CartItem, Product, User } from './types';
 import AdminDashboard from './pages/AdminDashboard';
-import About from './pages/About'; // <-- SHTUAM FAQEN E RE
+import About from './pages/About'; 
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
@@ -33,7 +33,6 @@ function App() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
-  // <-- SHTUAM STATE PËR KËRKIMIN NGA NAVBAR
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
@@ -103,21 +102,24 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-[#0b1120] text-slate-200 font-sans selection:bg-emerald-500/30 pb-24 sm:pb-0 relative">
+      {/* SHTUAM print:bg-white që letra të dalë e bardhë e pastër */}
+      <div className="min-h-screen bg-[#0b1120] text-slate-200 font-sans selection:bg-emerald-500/30 pb-24 sm:pb-0 relative print:bg-white">
         
-        <Navbar 
-          cartCount={totalCartCount} 
-          user={user} 
-          onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} 
-          onLogout={handleLogout} 
-          searchTerm={searchTerm} onSearchChange={setSearchTerm} // <-- LIDHJA ME NAVBAR
-        />
+        {/* SHTUAM print:hidden që Navbar mos të printohet */}
+        <div className="print:hidden">
+          <Navbar 
+            cartCount={totalCartCount} 
+            user={user} 
+            onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} 
+            onLogout={handleLogout} 
+            searchTerm={searchTerm} onSearchChange={setSearchTerm} 
+          />
+        </div>
         
         <Routes>
-          {/* KALUAM SEARCH TERM TE HOME */}
           <Route path="/" element={<Home onAddToCart={handleAddToCart} searchTerm={searchTerm} />} />
           <Route path="/admin" element={<AdminDashboard user={user} />} />
-          <Route path="/about" element={<About />} /> {/* <-- RRUGA E RE */}
+          <Route path="/about" element={<About />} />
           <Route path="/cart" element={
             <Cart 
               items={cartItems} 
@@ -132,15 +134,18 @@ function App() {
           <Route path="/profile" element={<Profile user={user} />} />
         </Routes>
 
-        <MobileNav 
-          cartCount={totalCartCount} 
-          user={user} 
-          onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} 
-          onLogout={handleLogout} 
-        />
+        {/* SHTUAM print:hidden që Menuja e Celularit mos të printohet */}
+        <div className="print:hidden">
+          <MobileNav 
+            cartCount={totalCartCount} 
+            user={user} 
+            onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} 
+            onLogout={handleLogout} 
+          />
+        </div>
 
         {isAuthOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm print:hidden">
             <div className="bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200">
               <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -168,7 +173,8 @@ function App() {
           </div>
         )}
 
-        <footer className="bg-slate-900 border-t border-slate-800 py-12 mt-10 hidden sm:block">
+        {/* --- FOOTER LUKSOZ (SHTUAR print:hidden) --- */}
+        <footer className="bg-slate-900 border-t border-slate-800 py-12 mt-10 hidden sm:block print:hidden">
           <div className="max-w-7xl mx-auto px-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
               <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-2">
@@ -186,7 +192,6 @@ function App() {
             </div>
             
             <div className="flex gap-4">
-              {/* Ikonat Sociale boshe si Placeholder */}
               <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-emerald-500 hover:text-slate-900 transition-all cursor-pointer">
                 <span className="font-black text-xs">IG</span>
               </div>
@@ -196,6 +201,7 @@ function App() {
             </div>
           </div>
         </footer>
+
       </div>
     </Router>
   );
