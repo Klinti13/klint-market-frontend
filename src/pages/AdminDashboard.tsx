@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import type { User } from '../types';
 
-// API Dinamik (Nuk ka më localhost hardcoded)
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export default function AdminDashboard({ user }: { user: User }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // STATET E REJA PER MODALIN E FSHIRJES
+  const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
   const fetchOrders = async () => {
     try {
@@ -35,18 +37,25 @@ export default function AdminDashboard({ user }: { user: User }) {
     }
   };
 
-  const deleteOrder = async (orderId: string) => {
-    if (!window.confirm("Kujdes! Je i sigurt që do ta fshish këtë porosi?")) return;
+  // FUNKSIONI I RI QE THJESHT HAP MODALIN
+  const handleDeleteClick = (orderId: string) => {
+    setOrderToDelete(orderId);
+  };
+
+  // FUNKSIONI QE BEN FSHIRJEN REALE
+  const confirmDelete = async () => {
+    if (!orderToDelete) return;
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.delete(`${API_URL}/api/orders/${orderId}`, config);
-      fetchOrders(); 
+      await axios.delete(`${API_URL}/api/orders/${orderToDelete}`, config);
+      setOrderToDelete(null); // Mbyll modalin
+      fetchOrders(); // Rifresko listen
     } catch (err) { 
       alert("Gabim gjatë fshirjes. Sigurohu që ke krijuar rrugën DELETE në Backend!"); 
+      setOrderToDelete(null);
     }
   };
 
-  // --- LLOGARITJET E STATISTIKAVE ---
   const totalRevenue = useMemo(() => {
     return orders.reduce((acc, order) => acc + (order.totalPrice || 0), 0);
   }, [orders]);
@@ -63,12 +72,11 @@ export default function AdminDashboard({ user }: { user: User }) {
   if (!user.isAdmin) return <div className="p-20 text-center text-rose-500 font-black tracking-widest uppercase">Aksesi i Mohuar!</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24 relative">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
         <h1 className="text-4xl font-black text-white tracking-tighter">Panel <span className="text-emerald-500">Kryesor</span></h1>
       </div>
 
-      {/* SEKSIONI I STATISTIKAVE */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div className="bg-slate-800/60 p-6 rounded-[2rem] border border-slate-700/50 shadow-xl">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Porosi</p>
@@ -84,7 +92,6 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       </div>
 
-      {/* TABELA E POROSIVE */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto shadow-2xl">
         <table className="w-full text-left border-collapse min-w-[800px]">
           <thead>
@@ -119,7 +126,8 @@ export default function AdminDashboard({ user }: { user: User }) {
                 <td className="p-6 flex gap-2">
                   <button onClick={() => updateStatus(order._id, 'Nisur')} className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20 hover:bg-blue-500 hover:text-white transition-all" title="Shëno si të Nisur">🚀</button>
                   <button onClick={() => updateStatus(order._id, 'Paguar')} className="w-8 h-8 flex items-center justify-center bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20 hover:bg-emerald-500 hover:text-white transition-all" title="Shëno si të Paguar">💵</button>
-                  <button onClick={() => deleteOrder(order._id)} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all ml-2" title="Fshi Porosinë">🗑️</button>
+                  {/* KETU NDRYSHUAM LOGJIKEN E BUTONIT */}
+                  <button onClick={() => handleDeleteClick(order._id)} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all ml-2" title="Fshi Porosinë">🗑️</button>
                 </td>
               </tr>
             ))}
@@ -129,6 +137,34 @@ export default function AdminDashboard({ user }: { user: User }) {
           <div className="p-20 text-center text-slate-500 font-bold uppercase tracking-widest">Nuk ka asnjë porosi për momentin</div>
         )}
       </div>
+
+      {/* MODALI I RI LUKSOZ PER FSHIRJEN */}
+      {orderToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center animate-in fade-in zoom-in duration-200">
+            <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-500/20 shadow-inner">
+              <span className="text-2xl">🗑️</span>
+            </div>
+            <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Fshi Porosinë</h3>
+            <p className="text-slate-400 text-sm mb-8 font-medium">A je i sigurt? Ky veprim e heq përfundimisht porosinë nga databaza dhe nuk mund të kthehet mbrapsht.</p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setOrderToDelete(null)} 
+                className="flex-1 py-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-colors text-sm uppercase tracking-widest"
+              >
+                Anulo
+              </button>
+              <button 
+                onClick={confirmDelete} 
+                className="flex-1 py-4 bg-rose-500 hover:bg-rose-400 text-white font-black rounded-xl transition-all shadow-lg shadow-rose-500/20 text-sm uppercase tracking-widest active:scale-95"
+              >
+                Konfirmo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
