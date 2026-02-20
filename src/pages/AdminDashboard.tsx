@@ -5,17 +5,20 @@ import type { User } from '../types';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export default function AdminDashboard({ user }: { user: User }) {
-  const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders');
   const [orders, setOrders] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]); // SHTUAR: Per te mbajtur produktet
   const [loading, setLoading] = useState(true);
-  const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'order' | 'product'} | null>(null);
+  
+  // NDRYSHUAR: Tani mbajmë ID-në dhe llojin (porosi apo produkt)
+  const [itemToDelete, setItemToDelete] = useState<{id: string, type: 'orders' | 'products'} | null>(null);
+  const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders'); // SHTUAR: Per te ndryshuar pamjen
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
-    name: '', price: '', oldPrice: '', description: '', image: '', category: 'Bio', badge: ''
+    name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: ''
   });
 
+  // NDRYSHUAR: Tani i merr te dyja nga Databaza
   const fetchData = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -25,82 +28,146 @@ export default function AdminDashboard({ user }: { user: User }) {
       ]);
       setOrders(ordersRes.data);
       setProducts(productsRes.data);
-    } catch (err) { console.error("Gabim"); } 
+    } catch (err) { console.error("Gabim në marrjen e të dhënave"); } 
     finally { setLoading(false); }
   };
 
   useEffect(() => { if (user.isAdmin) fetchData(); }, [user.token]);
 
-  const updateStatus = async (id: string, s: string) => {
-    const config = { headers: { Authorization: `Bearer ${user.token}` } };
-    await axios.put(`${API_URL}/api/orders/${id}/status`, { status: s }, config);
-    fetchData();
+  const updateStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: newStatus }, config);
+      fetchData(); 
+    } catch (err) { alert("Gabim gjatë përditësimit"); }
   };
 
-  const handleConfirmDelete = async () => {
+  // NDRYSHUAR: Funksioni i fshirjes tani fshin edhe produktin edhe porosine
+  const confirmDelete = async () => {
     if (!itemToDelete) return;
-    const config = { headers: { Authorization: `Bearer ${user.token}` } };
-    const path = itemToDelete.type === 'order' ? 'orders' : 'products';
-    await axios.delete(`${API_URL}/api/${path}/${itemToDelete.id}`, config);
-    setItemToDelete(null); fetchData();
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.delete(`${API_URL}/api/${itemToDelete.type}/${itemToDelete.id}`, config);
+      setItemToDelete(null); 
+      fetchData(); 
+    } catch (err) { alert("Gabim gjatë fshirjes."); setItemToDelete(null); }
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const config = { headers: { Authorization: `Bearer ${user.token}` } };
-    await axios.post(`${API_URL}/api/products`, { ...newProduct, price: Number(newProduct.price), oldPrice: newProduct.oldPrice ? Number(newProduct.oldPrice) : null }, config);
-    setIsProductModalOpen(false);
-    setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Bio', badge: '' });
-    fetchData();
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.post(`${API_URL}/api/products`, {
+        ...newProduct,
+        price: Number(newProduct.price),
+        oldPrice: newProduct.oldPrice ? Number(newProduct.oldPrice) : null
+      }, config);
+      
+      setIsProductModalOpen(false);
+      setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: '' });
+      fetchData();
+      alert("✅ Produkti u shtua me sukses!");
+    } catch (err) { alert("❌ Gabim gjatë shtimit."); }
   };
 
-  if (!user.isAdmin) return <div className="p-20 text-center text-rose-500 font-black">AKSESI I MOHUAR!</div>;
+  const totalRevenue = useMemo(() => orders.reduce((acc, order) => acc + (order.totalPrice || 0), 0), [orders]);
+  const currentMonthRevenue = useMemo(() => {
+    const currentMonth = new Date().getMonth();
+    return orders.filter(order => new Date(order.createdAt).getMonth() === currentMonth)
+                 .reduce((acc, order) => acc + (order.totalPrice || 0), 0);
+  }, [orders]);
+
+  if (!user.isAdmin) return <div className="p-20 text-center text-rose-500 font-black tracking-widest uppercase">Aksesi i Mohuar!</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24">
-      <div className="flex justify-between items-center mb-10">
-        <h1 className="text-4xl font-black text-white tracking-tighter">Admin <span className="text-emerald-500">Panel</span></h1>
-        <button onClick={() => setIsProductModalOpen(true)} className="bg-emerald-500 text-slate-900 font-black px-6 py-3 rounded-xl uppercase text-xs">➕ Shto Produkt</button>
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24 relative">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
+        <div className="flex flex-col gap-2">
+           <h1 className="text-4xl font-black text-white tracking-tighter">Panel <span className="text-emerald-500">Kryesor</span></h1>
+           {/* BUTONI I RI PER TE NDRYSHUAR PAMJEN */}
+           <div className="flex gap-4 mt-2">
+              <button onClick={() => setActiveTab('orders')} className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border transition-all ${activeTab === 'orders' ? 'bg-emerald-500 text-slate-900 border-emerald-500' : 'text-slate-500 border-slate-800 hover:text-white'}`}>📦 Porositë</button>
+              <button onClick={() => setActiveTab('products')} className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-lg border transition-all ${activeTab === 'products' ? 'bg-emerald-500 text-slate-900 border-emerald-500' : 'text-slate-500 border-slate-800 hover:text-white'}`}>🏷️ Produktet</button>
+           </div>
+        </div>
+        
+        <button 
+          onClick={() => setIsProductModalOpen(true)}
+          className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-sm flex items-center gap-2"
+        >
+          <span>➕</span> Shto Produkt
+        </button>
       </div>
 
-      <div className="flex gap-4 mb-8 border-b border-slate-800 pb-4 text-[10px] font-black uppercase tracking-widest">
-        <button onClick={() => setActiveTab('orders')} className={activeTab === 'orders' ? 'text-emerald-400 border-b-2 border-emerald-500 pb-4' : 'text-slate-500'}>Porositë ({orders.length})</button>
-        <button onClick={() => setActiveTab('products')} className={activeTab === 'products' ? 'text-emerald-400 border-b-2 border-emerald-500 pb-4' : 'text-slate-500'}>Produktet ({products.length})</button>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div className="bg-slate-800/60 p-6 rounded-[2rem] border border-slate-700/50 shadow-xl">
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Porosi</p>
+          <p className="text-4xl font-black text-white">{orders.length}</p>
+        </div>
+        <div className="bg-emerald-500/10 p-6 rounded-[2rem] border border-emerald-500/20 shadow-xl">
+          <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest mb-2">Të Ardhurat</p>
+          <p className="text-4xl font-black text-emerald-400">{totalRevenue.toLocaleString()} L</p>
+        </div>
+        <div className="bg-indigo-500/10 p-6 rounded-[2rem] border border-indigo-500/20 shadow-xl">
+          <p className="text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-2">Produkte Live</p>
+          <p className="text-4xl font-black text-indigo-400">{products.length}</p>
+        </div>
       </div>
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto shadow-2xl">
         {activeTab === 'orders' ? (
-          <table className="w-full text-left">
-            <thead className="bg-slate-800/50 text-slate-500 text-[9px] uppercase font-black">
-              <tr><th className="p-6">Klienti</th><th className="p-6">Totali</th><th className="p-6">Statusi</th><th className="p-6 text-right">Veprime</th></tr>
+          /* TABELA E POROSIVE (E njejta) */
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead>
+              <tr className="bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                <th className="p-6">Klienti</th>
+                <th className="p-6">Data</th>
+                <th className="p-6">Adresa & Tel</th>
+                <th className="p-6">Totali</th>
+                <th className="p-6">Statusi</th>
+                <th className="p-6">Veprime</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {orders.map((o: any) => (
-                <tr key={o._id} className="text-sm">
-                  <td className="p-6 text-white font-bold">{o.user?.name}</td>
-                  <td className="p-6 text-white">{o.totalPrice} L</td>
-                  <td className="p-6"><span className="text-amber-400 font-black uppercase text-[9px]">{o.status || 'Pending'}</span></td>
-                  <td className="p-6 text-right space-x-2">
-                    <button onClick={() => updateStatus(o._id, 'Nisur')} className="bg-blue-500/10 p-2 rounded-lg">🚀</button>
-                    <button onClick={() => setItemToDelete({id: o._id, type: 'order'})} className="bg-rose-500/10 p-2 rounded-lg">🗑️</button>
+              {orders.map((order: any) => (
+                <tr key={order._id} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="p-6 text-white font-bold">{order.user?.name || "I panjohur"}</td>
+                  <td className="p-6 text-slate-400 text-xs font-medium">{new Date(order.createdAt).toLocaleDateString('sq-AL')}</td>
+                  <td className="p-6">
+                    <p className="text-white text-sm truncate max-w-[200px]">{order.shippingAddress?.address || "Pa Adresë"}</p>
+                    <p className="text-emerald-500 text-xs font-bold">{order.shippingAddress?.phone || "Pa Telefon"}</p>
+                  </td>
+                  <td className="p-6 text-white font-black">{order.totalPrice.toLocaleString()} L</td>
+                  <td className="p-6 text-xs uppercase font-black text-amber-500">{order.status || 'Pending'}</td>
+                  <td className="p-6 flex gap-2">
+                    <button onClick={() => updateStatus(order._id, 'Nisur')} className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-400 rounded-lg border hover:bg-blue-500">🚀</button>
+                    <button onClick={() => setItemToDelete({id: order._id, type: 'orders'})} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-400 rounded-lg border hover:bg-rose-500">🗑️</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          <table className="w-full text-left">
-            <thead className="bg-slate-800/50 text-slate-500 text-[9px] uppercase font-black">
-              <tr><th className="p-6">Foto</th><th className="p-6">Emri</th><th className="p-6">Kategoria</th><th className="p-6 text-right">Veprime</th></tr>
+          /* TABELA E RE E PRODUKTEVE */
+          <table className="w-full text-left border-collapse min-w-[800px]">
+            <thead>
+              <tr className="bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                <th className="p-6">Foto</th>
+                <th className="p-6">Emri</th>
+                <th className="p-6">Kategoria</th>
+                <th className="p-6">Çmimi</th>
+                <th className="p-6 text-right">Veprime</th>
+              </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {products.map((p: any) => (
-                <tr key={p._id} className="text-sm">
-                  <td className="p-6"><img src={p.imageUrl} className="w-10 h-10 object-cover rounded-lg" /></td>
-                  <td className="p-6 text-white font-bold">{p.name}</td>
-                  <td className="p-6 text-emerald-400 font-black uppercase text-[9px]">{p.category}</td>
+              {products.map((product: any) => (
+                <tr key={product._id} className="hover:bg-slate-800/30 transition-colors">
+                  <td className="p-6"><img src={product.imageUrl} className="w-10 h-10 rounded-lg object-cover border border-slate-700" /></td>
+                  <td className="p-6 text-white font-bold">{product.name}</td>
+                  <td className="p-6 text-emerald-500 text-[10px] font-black uppercase tracking-widest">{product.category}</td>
+                  <td className="p-6 text-white font-black">{product.price.toLocaleString()} L</td>
                   <td className="p-6 text-right">
-                    <button onClick={() => setItemToDelete({id: p._id, type: 'product'})} className="bg-rose-500/10 text-rose-400 p-2 rounded-lg px-4 font-black uppercase text-[9px]">🗑️ Fshi</button>
+                    <button onClick={() => setItemToDelete({id: product._id, type: 'products'})} className="px-4 py-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all text-[9px] font-black uppercase">🗑️ Fshi Produktin</button>
                   </td>
                 </tr>
               ))}
@@ -109,34 +176,35 @@ export default function AdminDashboard({ user }: { user: User }) {
         )}
       </div>
 
-      {/* DELETE MODAL */}
+      {/* MODAL I FSHIRJES (Tani punon per te dyja) */}
       {itemToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm text-center">
-            <h3 className="text-xl font-black text-white mb-6">Fshi {itemToDelete.type === 'order' ? 'Porosinë' : 'Produktin'}?</h3>
+          <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center">
+            <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Fshi {itemToDelete.type === 'orders' ? 'Porosinë' : 'Produktin'}</h3>
+            <p className="text-slate-400 text-sm mb-8 font-medium">A je i sigurt? Ky veprim nuk mund të kthehet mbrapsht.</p>
             <div className="flex gap-4">
-              <button onClick={() => setItemToDelete(null)} className="flex-1 py-3 bg-slate-800 text-white font-bold rounded-xl">Anulo</button>
-              <button onClick={handleConfirmDelete} className="flex-1 py-3 bg-rose-500 text-white font-black rounded-xl">Konfirmo</button>
+              <button onClick={() => setItemToDelete(null)} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-sm uppercase">Anulo</button>
+              <button onClick={confirmDelete} className="flex-1 py-4 bg-rose-500 text-white font-black rounded-xl text-sm uppercase shadow-lg">Konfirmo</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ADD PRODUCT MODAL */}
+      {/* MODAL I SHTIMIT (I pandryshuar) */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md my-8">
-            <div className="flex justify-between items-center mb-6"><h3 className="text-2xl font-black text-white">Shto Produkt</h3><button onClick={() => setIsProductModalOpen(false)} className="text-slate-400">✕</button></div>
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 my-8">
+            <div className="flex justify-between items-center mb-6"><h3 className="text-2xl font-black text-white">Krijo Produkt</h3><button onClick={() => setIsProductModalOpen(false)} className="text-slate-400 hover:text-white">✕</button></div>
             <form onSubmit={handleAddProduct} className="space-y-4">
-              <input type="text" required placeholder="Emri" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none" />
+              <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none" placeholder="Emri" />
               <div className="grid grid-cols-2 gap-4">
-                <input type="number" required placeholder="Çmimi" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white" />
-                <input type="number" placeholder="I vjetri" value={newProduct.oldPrice} onChange={e => setNewProduct({...newProduct, oldPrice: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white" />
+                <input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none" placeholder="Çmimi" />
+                <input type="number" value={newProduct.oldPrice} onChange={e => setNewProduct({...newProduct, oldPrice: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none" placeholder="Çmimi Vjetër" />
               </div>
-              <textarea required placeholder="Përshkrimi" value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white min-h-[80px]" />
-              <input type="text" required placeholder="Kategoria (p.sh Bio)" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white" />
-              <input type="url" required placeholder="Linku i Fotos" value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white" />
-              <button type="submit" className="w-full py-4 bg-emerald-500 text-slate-900 font-black rounded-xl uppercase tracking-widest active:scale-95 shadow-lg">Ruaj Produktin</button>
+              <textarea required value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none min-h-[80px]" placeholder="Përshkrimi" />
+              <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none" placeholder="Kategoria" />
+              <input type="url" required value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none" placeholder="URL e Fotos" />
+              <button type="submit" className="w-full mt-6 py-4 bg-emerald-500 text-slate-900 font-black rounded-xl uppercase tracking-widest">Ruaj Produktin</button>
             </form>
           </div>
         </div>
