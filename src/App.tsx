@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import axios from 'axios';
 import Navbar from './components/Navbar';
 import MobileNav from './components/MobileNav';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
+import Profile from './pages/Profile'; 
 import type { CartItem, Product, User } from './types';
+import AdminDashboard from './pages/AdminDashboard';
+
+// KJO LINJE LIDH FRONTEND-IN ME BACKEND-IN LIVE
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
@@ -14,13 +20,18 @@ function App() {
 
   const [user, setUser] = useState<User>(() => {
     const savedUser = localStorage.getItem("emarketi_user");
-    return savedUser ? JSON.parse(savedUser) : { name: '', isLoggedIn: false };
+    const parsedUser = savedUser ? JSON.parse(savedUser) : null;
+    return (parsedUser && parsedUser.token) 
+      ? { ...parsedUser, isLoggedIn: true, points: parsedUser.points || 0 } 
+      : { name: '', isLoggedIn: false, points: 0, isAdmin: false };
   });
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     localStorage.setItem("emarketi_cart", JSON.stringify(cartItems));
@@ -30,21 +41,37 @@ function App() {
     localStorage.setItem("emarketi_user", JSON.stringify(user));
   }, [user]);
 
-  function handleAuthSubmit(e: React.FormEvent) {
+  const handleUpdatePoints = (newPoints: number) => {
+    setUser(prev => ({ ...prev, points: newPoints }));
+  };
+
+  async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || !password) return;
+    setError('');
     
-    let extractedName = email.split('@')[0];
-    extractedName = extractedName.charAt(0).toUpperCase() + extractedName.slice(1);
-    
-    setUser({ name: extractedName, isLoggedIn: true });
-    setIsAuthOpen(false);
-    setEmail('');
-    setPassword('');
+    try {
+      const endpoint = authMode === 'login' ? 'login' : 'register';
+      const payload = authMode === 'login' 
+        ? { email, password } 
+        : { name, email, password };
+
+      // PERDORIM API_URL DINAMIKE
+      const { data } = await axios.post(`${API_URL}/api/users/${endpoint}`, payload);
+      
+      setUser({ ...data, isLoggedIn: true });
+      setIsAuthOpen(false);
+      setEmail('');
+      setPassword('');
+      setName('');
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Ndodhi një gabim. Provo përsëri.');
+    }
   }
 
   function handleLogout() {
-    setUser({ name: '', isLoggedIn: false });
+    setUser({ name: '', isLoggedIn: false, points: 0, isAdmin: false });
+    localStorage.removeItem("emarketi_user");
+    window.location.href = '#/';
   }
 
   function handleAddToCart(product: Product) {
@@ -59,14 +86,14 @@ function App() {
     });
   }
 
-  function handleUpdateQty(id: number, newQty: number) {
+  function handleUpdateQty(id: any, newQty: number) {
     if (newQty < 1) return;
     setCartItems(prevItems => 
       prevItems.map(item => item.id === id ? { ...item, qty: newQty } : item)
     );
   }
 
-  function handleRemoveFromCart(id: number) {
+  function handleRemoveFromCart(id: any) {
     setCartItems(prevItems => prevItems.filter(item => item.id !== id));
   }
 
@@ -79,90 +106,63 @@ function App() {
         <Navbar 
           cartCount={totalCartCount} 
           user={user} 
-          onOpenAuth={() => setIsAuthOpen(true)} 
+          onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} 
           onLogout={handleLogout} 
         />
         
         <Routes>
           <Route path="/" element={<Home onAddToCart={handleAddToCart} />} />
+          <Route path="/admin" element={<AdminDashboard user={user} />} />
           <Route path="/cart" element={
             <Cart 
               items={cartItems} 
               user={user}
               onUpdateQty={handleUpdateQty} 
-              onRemove={handleRemoveFromCart} 
+              onRemove={handleRemoveFromCart}
+              onClearCart={() => setCartItems([])}
+              onUpdatePoints={handleUpdatePoints}
+              onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }}
             />
           } />
+          <Route path="/profile" element={<Profile user={user} />} />
         </Routes>
 
         <MobileNav 
           cartCount={totalCartCount} 
           user={user} 
-          onOpenAuth={() => setIsAuthOpen(true)} 
+          onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} 
           onLogout={handleLogout} 
         />
 
+        {/* MODALI I LOGIMIT (PA NDRYSHIME NE DIZAJN) */}
         {isAuthOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-            <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200">
-              
-              <button 
-                onClick={() => setIsAuthOpen(false)}
-                className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors"
-              >
+            <div className="bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200">
+              <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
-
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-black text-white mb-2">
-                  {authMode === 'login' ? 'Mirësevini' : 'Krijo Llogari'}
-                </h2>
-                <p className="text-slate-400 font-medium">
-                  {authMode === 'login' ? 'Identifikohu për të vazhduar blerjet' : 'Regjistrohu për të përfituar ofertat'}
-                </p>
+                <h2 className="text-3xl font-black text-white mb-2">{authMode === 'login' ? 'Mirësevini' : 'Krijo Llogari'}</h2>
+                {error && <p className="text-rose-400 text-sm font-bold bg-rose-500/10 py-2 rounded-lg mb-2">{error}</p>}
               </div>
-
               <form onSubmit={handleAuthSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Email</label>
-                  <input 
-                    type="email" 
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white transition-colors"
-                    placeholder="emri@email.com"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">Fjalëkalimi</label>
-                  <input 
-                    type="password" 
-                    required
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white transition-colors"
-                    placeholder="••••••••"
-                  />
-                </div>
-                
-                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest py-4 rounded-xl transition-all active:scale-95 shadow-lg shadow-emerald-500/20 mt-4">
-                  {authMode === 'login' ? 'Hyr' : 'Regjistrohu'}
+                {authMode === 'signup' && (
+                  <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white" placeholder="Emri i Plotë" />
+                )}
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white" placeholder="Email" />
+                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white" placeholder="••••••••" />
+                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20">
+                  {authMode === 'login' ? 'Hyr në Llogari' : 'Regjistrohu Tani'}
                 </button>
               </form>
-
-              <div className="mt-6 text-center">
-                <button 
-                  onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
-                  className="text-slate-400 hover:text-emerald-400 text-sm font-medium transition-colors"
-                >
-                  {authMode === 'login' ? "S'ke llogari? Regjistrohu" : "Ke llogari? Hyr këtu"}
+              <div className="mt-8 text-center border-t border-slate-800 pt-6">
+                <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(''); }} className="text-slate-400 hover:text-emerald-400 text-sm font-medium">
+                  {authMode === 'login' ? "Nuk keni llogari? Regjistrohu" : "Keni llogari? Hyr këtu"}
                 </button>
               </div>
             </div>
           </div>
         )}
-
       </div>
     </Router>
   );

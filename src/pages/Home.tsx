@@ -1,5 +1,5 @@
-import  { useMemo } from 'react';
-import { productsList } from '../data/products';
+import { useMemo, useState, useEffect } from 'react';
+import axios from 'axios';
 import type { Product } from '../types';
 
 interface HomeProps {
@@ -7,9 +7,37 @@ interface HomeProps {
 }
 
 export default function Home({ onAddToCart }: HomeProps) {
+  // 1. Krijojmë state për produktet reale dhe një gjendje "Loading"
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 2. Tërheqim të dhënat nga Serveri yt në portën 5001
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get('http://localhost:5001/api/products');
+        
+        // Përkthejmë të dhënat e MongoDB në formatin që do React-i yt
+        const dbProducts = response.data.map((p: any) => ({
+          ...p,
+          id: p._id,          // Databaza jep _id, React do id
+          image: p.imageUrl   // Databaza jep imageUrl, React do image
+        }));
+        
+        setProducts(dbProducts);
+        setLoading(false);
+      } catch (error) {
+        console.error("❌ Gabim gjatë marrjes nga Databaza:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
   
-  const offers = useMemo(() => productsList.filter(p => p.oldPrice), []);
-  const regularProducts = useMemo(() => productsList.filter(p => !p.oldPrice), []);
+  // Tani përdorim 'products' nga Databaza, jo më listën false
+  const offers = useMemo(() => products.filter(p => p.oldPrice), [products]);
+  const regularProducts = useMemo(() => products.filter(p => !p.oldPrice), [products]);
 
   const groupedProducts = useMemo(() => {
     return regularProducts.reduce((acc, product) => {
@@ -18,6 +46,17 @@ export default function Home({ onAddToCart }: HomeProps) {
       return acc;
     }, {} as Record<string, Product[]>);
   }, [regularProducts]);
+
+  // Pamja derisa të vijnë produktet
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-2xl text-emerald-500 font-bold animate-pulse tracking-widest uppercase">
+          Duke u lidhur me Databazën...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20">
