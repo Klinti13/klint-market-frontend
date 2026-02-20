@@ -22,7 +22,7 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
           image: p.imageUrl
         }));
         
-        setProducts(dbProducts);
+        setProducts(dbProducts.filter((p: any) => p.isActive !== false));
         setLoading(false);
       } catch (error) {
         console.error("❌ Gabim gjatë marrjes nga Databaza:", error);
