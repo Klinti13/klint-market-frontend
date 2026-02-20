@@ -31,6 +31,22 @@ export default function Profile({ user }: { user: User }) {
   const isVipEligible = points >= 1000;
   const pointsNeeded = 1000 - points;
 
+  // LLOGJIKA E RE E NGJYRAVE PËR KLIENTIN 🚥
+  const getStatusBadge = (status: string) => {
+    const baseClasses = "px-5 py-3 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[10px] font-black uppercase tracking-widest border text-center w-full sm:w-auto transition-all duration-300";
+    
+    switch(status) {
+      case 'Porosia u dërgua': 
+        return <div className={`${baseClasses} bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]`}>✅ {status}</div>;
+      case 'Është Rrugës': 
+        return <div className={`${baseClasses} bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.15)]`}>🚚 {status}</div>;
+      case 'Po Përgatitet': 
+        return <div className={`${baseClasses} bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.15)]`}>📦 {status}</div>;
+      default: 
+        return <div className={`${baseClasses} bg-amber-500/10 text-amber-400 border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.15)]`}>⏳ {status || 'Në Pritje'}</div>;
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-24 text-slate-200">
       
@@ -122,17 +138,13 @@ export default function Profile({ user }: { user: User }) {
             <div key={order._id} className="bg-slate-800/40 border border-slate-700/50 p-6 sm:p-8 rounded-[2rem] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-0 transition-all hover:bg-slate-800/60">
               
               <div className="space-y-2">
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Kodi: {order._id.slice(-8)}</p>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Kodi Faturës: #{order._id.slice(-8).toUpperCase()}</p>
                 <p className="text-2xl sm:text-3xl font-black text-white">{order.totalPrice.toLocaleString()} L</p>
+                <p className="text-slate-400 text-xs font-medium">{new Date(order.createdAt).toLocaleDateString('sq-AL')}</p>
               </div>
               
-              <div className={`px-5 py-3 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[10px] font-black uppercase tracking-widest border text-center w-full sm:w-auto ${
-                order.status === 'Porosia u dërgua' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                order.status === 'Porosia u mor' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
-                'bg-amber-500/10 text-amber-400 border-amber-500/20'
-              }`}>
-                {order.status || 'Në Pritje'}
-              </div>
+              {/* Tani thërrasim funksionin që i vizaton ngjyrat ekzakte si tek Admini */}
+              {getStatusBadge(order.status)}
               
             </div>
           ))}
