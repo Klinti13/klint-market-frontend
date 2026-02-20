@@ -10,8 +10,6 @@ interface HomeProps {
 export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // LOGJIKA E TOASTER (SHTUAR)
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,13 +33,12 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
     fetchProducts();
   }, []);
 
-  // FUNKSIONI PËR TË SHTUAR NË SHPORTË DHE PËR TË SHFAQUR TOAST-IN
   const handleAddToCartWithToast = (product: Product) => {
     onAddToCart(product);
     setToastMessage(`Shtuar në shportë: ${product.name}`);
     setTimeout(() => {
       setToastMessage(null);
-    }, 3000); // Zhduket pas 3 sekondash
+    }, 3000); 
   };
   
   const filteredProducts = useMemo(() => {
@@ -56,6 +53,13 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
   const offers = useMemo(() => filteredProducts.filter(p => p.oldPrice), [filteredProducts]);
   const regularProducts = useMemo(() => filteredProducts.filter(p => !p.oldPrice), [filteredProducts]);
 
+  // LOGJIKA E "ZBULIMEVE TË REJA" (Zgjedh 4 produkte rastësore)
+  const suggestedProducts = useMemo(() => {
+    if (regularProducts.length === 0) return [];
+    const shuffled = [...regularProducts].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, 4);
+  }, [regularProducts]);
+
   const groupedProducts = useMemo(() => {
     return regularProducts.reduce((acc, product) => {
       if (!acc[product.category]) acc[product.category] = [];
@@ -64,11 +68,19 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
     }, {} as Record<string, Product[]>);
   }, [regularProducts]);
 
+  // SKELETON LOADER - Ngarkim Premium në vend të tekstit të thjeshtë
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-2xl text-emerald-500 font-bold animate-pulse tracking-widest uppercase">
-          Duke u lidhur me Databazën...
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20">
+        <div className="w-full h-72 sm:h-96 bg-slate-800/40 animate-pulse rounded-[2rem] mb-16 border border-slate-700/50"></div>
+        <div className="flex gap-4 mb-8">
+          <div className="w-48 h-8 bg-slate-800/40 animate-pulse rounded-lg"></div>
+          <div className="h-8 bg-slate-800/20 animate-pulse flex-grow rounded-lg hidden sm:block"></div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="h-80 bg-slate-800/30 animate-pulse rounded-[1.5rem] border border-slate-800"></div>
+          ))}
         </div>
       </div>
     );
@@ -77,7 +89,6 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20 relative">
       
-      {/* TOAST NOTIFICATION (SHTUAR) */}
       {toastMessage && (
         <div className="fixed top-24 right-4 z-50 animate-in slide-in-from-right fade-in duration-300">
           <div className="bg-emerald-500/90 backdrop-blur-sm text-slate-900 font-black px-6 py-4 rounded-2xl shadow-2xl shadow-emerald-500/20 flex items-center gap-3">
@@ -102,6 +113,23 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
       {searchTerm && filteredProducts.length === 0 && (
         <div className="text-center py-20">
           <p className="text-slate-400 text-xl font-bold">Nuk u gjet asnjë produkt për "{searchTerm}"</p>
+        </div>
+      )}
+
+      {/* SEKSIONI I ZBULIMEVE TË REJA (Del vetëm kur s'po kërkon gjë dhe s'ka oferta lart) */}
+      {!searchTerm && suggestedProducts.length > 0 && offers.length === 0 && (
+        <div className="mb-20">
+          <div className="flex items-center gap-4 mb-8">
+            <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+              <span className="text-xl">✨</span> Zbulime të Reja
+            </h2>
+            <div className="h-px bg-gradient-to-r from-slate-700 to-transparent flex-grow"></div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {suggestedProducts.map(product => (
+              <ProductCard key={product.id} product={product} onAddToCart={handleAddToCartWithToast} />
+            ))}
+          </div>
         </div>
       )}
 

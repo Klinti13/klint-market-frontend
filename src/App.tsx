@@ -167,6 +167,35 @@ function App() {
             </div>
           </div>
         )}
+
+        <footer className="bg-slate-900 border-t border-slate-800 py-12 mt-10 hidden sm:block">
+          <div className="max-w-7xl mx-auto px-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
+            <div>
+              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-2">
+                E-Marketi
+              </h2>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">
+                © {new Date().getFullYear()} Të gjitha të drejtat e rezervuara.
+              </p>
+            </div>
+            
+            <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <a href="#" className="hover:text-emerald-400 transition-colors">Privatësia</a>
+              <a href="#" className="hover:text-emerald-400 transition-colors">Kushtet</a>
+              <a href="#" className="hover:text-emerald-400 transition-colors">Kontakti</a>
+            </div>
+            
+            <div className="flex gap-4">
+              {/* Ikonat Sociale boshe si Placeholder */}
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-emerald-500 hover:text-slate-900 transition-all cursor-pointer">
+                <span className="font-black text-xs">IG</span>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 hover:bg-emerald-500 hover:text-slate-900 transition-all cursor-pointer">
+                <span className="font-black text-xs">FB</span>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </Router>
   );
