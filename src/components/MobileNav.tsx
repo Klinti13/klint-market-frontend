@@ -11,7 +11,6 @@ interface MobileNavProps {
 export default function MobileNav({ cartCount, user, onOpenAuth, onLogout }: MobileNavProps) {
   const location = useLocation();
 
-  // Funksion i blinduar per stilin
   const getLinkStyle = (path: string) => {
     const isActive = location.pathname === path;
     return `flex flex-col items-center justify-center gap-1 transition-all duration-300 ${
@@ -60,16 +59,31 @@ export default function MobileNav({ cartCount, user, onOpenAuth, onLogout }: Mob
           </Link>
         )}
 
-        {/* PROFILI - KETU U BASHKUAN TELAT */}
+        {/* PROFILI */}
         {user.isLoggedIn ? (
-          <Link to="/profile" className={getLinkStyle('/profile')}>
-            <div className={`w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${location.pathname === '/profile' ? 'bg-emerald-500/10' : ''}`}>
-               <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black text-slate-900 border border-emerald-400/30 leading-none">
-                {user.name[0].toUpperCase()}
+          <>
+            <Link to="/profile" className={getLinkStyle('/profile')}>
+              <div className={`w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${location.pathname === '/profile' ? 'bg-emerald-500/10' : ''}`}>
+                <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] font-black text-slate-900 border border-emerald-400/30 leading-none">
+                  {user.name[0].toUpperCase()}
+                </div>
               </div>
-            </div>
-            <span className="text-[9px] font-black uppercase tracking-widest">Profili</span>
-          </Link>
+              <span className="text-[9px] font-black uppercase tracking-widest">Profili</span>
+            </Link>
+
+            {/* BUTONI DIL - SHTUAR KETU */}
+            <button 
+              onClick={onLogout} 
+              className="flex flex-col items-center justify-center gap-1 text-slate-500 hover:text-rose-400 transition-colors"
+            >
+              <div className="w-10 h-10 flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-widest text-rose-500/80">Dil</span>
+            </button>
+          </>
         ) : (
           <button onClick={onOpenAuth} className="flex flex-col items-center justify-center gap-1 text-slate-500">
             <div className="w-10 h-10 flex items-center justify-center">
