@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import type { User } from '../types';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 interface NavbarProps {
   cartCount: number;
@@ -13,23 +16,54 @@ interface NavbarProps {
 
 export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTerm, onSearchChange }: NavbarProps) {
   const [showConfirm, setShowConfirm] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]); // SHTUAR: Mban kategoritë dinamike
   const navigate = useNavigate();
   const location = useLocation();
 
-  // FUNKSIONI QE BEN SCROLL-IN INTELIGJENT
-  const handleCategoryClick = (e: React.MouseEvent) => {
+  // SHTUAR: Merr kategoritë nga produktet sapo hapet faqja
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const { data } = await axios.get(`${API_URL}/api/products`);
+        // Nxjerrim vetëm kategoritë unike (pa i përsëritur) dhe heqim ato boshe
+        const uniqueCategories = Array.from(new Set(data.map((p: any) => p.category).filter(Boolean)));
+        setCategories(uniqueCategories as string[]);
+      } catch (error) {
+        console.error("Gabim në marrjen e kategorive:", error);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // FUNKSIONI PËR TË LËVIZUR DHE FILTRUAR
+  const handleCategorySelect = (e: React.MouseEvent, categoryName: string) => {
     e.preventDefault();
     
+    // 1. Shkojmë në faqen kryesore nëse nuk jemi aty
     if (location.pathname !== '/') {
       navigate('/');
-      setTimeout(() => {
-        const element = document.getElementById('kategorite');
-        element?.scrollIntoView({ behavior: 'smooth' });
-      }, 300);
-    } else {
-      const element = document.getElementById('kategorite');
-      element?.scrollIntoView({ behavior: 'smooth' });
     }
+    
+    // 2. Vendosim emrin e kategorisë te search-i (kjo do filtrojë produktet automatikisht)
+    if (onSearchChange) {
+      onSearchChange(categoryName);
+    }
+
+    // 3. Bëjmë scroll "smooth" poshtë
+    setTimeout(() => {
+      const element = document.getElementById('kategorite') || document.body;
+      element?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
+  };
+
+  // Funksioni i vjetër vetëm për klikimin mbi fjalën kryesore "Kategoritë"
+  const handleScrollToProducts = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location.pathname !== '/') navigate('/');
+    setTimeout(() => {
+      const element = document.getElementById('kategorite') || document.body;
+      element?.scrollIntoView({ behavior: 'smooth' });
+    }, 300);
   };
 
   return (
@@ -58,35 +92,37 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
           <div className="hidden lg:flex items-center gap-6 text-sm font-bold mr-2">
             <Link to="/" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Marketi</Link>
             
-            {/* --- KËTU FILLON MAGJIA E DROPDOWN-IT DINAMIK --- */}
             <div className="relative group py-2">
               <button 
-                onClick={handleCategoryClick} 
+                onClick={handleScrollToProducts} 
                 className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px] font-bold flex items-center gap-1"
               >
                 Kategoritë
-                {/* Shigjeta e vogel qe kthehet poshte kur i kalon mausin */}
                 <svg className="w-3 h-3 group-hover:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7"></path></svg>
               </button>
 
-              {/* MENUJA RËNËSE (Dropdown) - Shfaqet vetëm kur i kalon mausin (hover) */}
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-4 group-hover:translate-y-0 overflow-hidden z-50">
-                <div className="p-2 flex flex-col">
-                  {/* Lista e kategorive - mund t'i ndryshosh si të duash */}
-                  {['Veshje', 'Aksesorë', 'Teknologji', 'Këpucë', 'Ushqime Bio'].map((cat) => (
-                    <button 
-                      key={cat}
-                      onClick={handleCategoryClick} // Për momentin thjesht të zbret poshtë te seksioni
-                      className="text-left px-4 py-3 text-[10px] font-black text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all tracking-widest uppercase flex items-center justify-between group/item"
-                    >
-                      {cat}
-                      <span className="opacity-0 group-hover/item:opacity-100 transition-opacity text-emerald-500">→</span>
-                    </button>
-                  ))}
+                <div className="p-2 flex flex-col max-h-60 overflow-y-auto custom-scrollbar">
+                  {/* NDRYSHIMI: Tani shfaqim kategoritë dinamike nga Databaza */}
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <button 
+                        key={cat}
+                        onClick={(e) => handleCategorySelect(e, cat)}
+                        className="text-left px-4 py-3 text-[10px] font-black text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-xl transition-all tracking-widest uppercase flex items-center justify-between group/item"
+                      >
+                        {cat}
+                        <span className="opacity-0 group-hover/item:opacity-100 transition-opacity text-emerald-500">→</span>
+                      </button>
+                    ))
+                  ) : (
+                    <span className="text-left px-4 py-3 text-[10px] font-black text-slate-600 tracking-widest uppercase">
+                      Po ngarkon...
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-            {/* --- FUNDI I DROPDOWN-IT --- */}
 
             <Link to="/about" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Historia</Link>
           </div>
