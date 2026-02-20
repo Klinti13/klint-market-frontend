@@ -34,13 +34,16 @@ export default function AdminDashboard({ user }: { user: User }) {
   useEffect(() => { if (user.isAdmin) fetchData(); }, [user.token]);
 
   // --- LOGJIKA E POROSIVE (E pandryshuar) ---
-  const updateStatus = async (orderId: string, newStatus: string) => {
-    try {
-      const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: newStatus }, config);
-      fetchData(); // Perditeson te dyja
-    } catch (err) { alert("Gabim gjatë përditësimit"); }
-  };
+const updateStatus = async (orderId: string, newStatus: string) => {
+  try {
+    const config = { headers: { Authorization: `Bearer ${user.token}` } };
+    // Kujdes: Sigurohu që rruga është /api/orders/ dhe jo /api/products/
+    await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: newStatus }, config);
+    fetchData(); // Kjo rifreskon tabelën që të ndryshojë statusi live
+  } catch (err) {
+    alert("Gabim gjatë përditësimit të statusit. Kontrollo Backend-in!");
+  }
+};
 
   // NDRYSHUAR: Tani fshin ose Porosi ose Produkt ne baze te Tab-it ku je
   const confirmDelete = async () => {
