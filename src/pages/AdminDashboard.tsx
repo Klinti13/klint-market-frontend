@@ -6,18 +6,16 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 export default function AdminDashboard({ user }: { user: User }) {
   const [orders, setOrders] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]); // SHTUAR: Per produktet
+  const [products, setProducts] = useState<any[]>([]); 
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders'); // SHTUAR: Per te ndryshuar tabelat
+  const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders'); 
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
 
-  // STATE PER PRODUKTET E REJA
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '', price: '', oldPrice: '', image: '', category: '', badge: ''
   });
 
-  // NDRYSHUAR: Merr te dyja te dhenat nga databaza
   const fetchData = async () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -33,19 +31,16 @@ export default function AdminDashboard({ user }: { user: User }) {
 
   useEffect(() => { if (user.isAdmin) fetchData(); }, [user.token]);
 
-  // --- LOGJIKA E POROSIVE (E pandryshuar) ---
-const updateStatus = async (orderId: string, newStatus: string) => {
-  try {
-    const config = { headers: { Authorization: `Bearer ${user.token}` } };
-    // Kujdes: Sigurohu që rruga është /api/orders/ dhe jo /api/products/
-    await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: newStatus }, config);
-    fetchData(); // Kjo rifreskon tabelën që të ndryshojë statusi live
-  } catch (err) {
-    alert("Gabim gjatë përditësimit të statusit. Kontrollo Backend-in!");
-  }
-};
+  const updateStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.put(`${API_URL}/api/orders/${orderId}/status`, { status: newStatus }, config);
+      fetchData(); 
+    } catch (err) {
+      alert("Gabim gjatë përditësimit të statusit. Kontrollo Backend-in!");
+    }
+  };
 
-  // NDRYSHUAR: Tani fshin ose Porosi ose Produkt ne baze te Tab-it ku je
   const confirmDelete = async () => {
     if (!orderToDelete) return;
     try {
@@ -57,7 +52,6 @@ const updateStatus = async (orderId: string, newStatus: string) => {
     } catch (err) { alert("Gabim gjatë fshirjes."); setOrderToDelete(null); }
   };
 
-  // --- LOGJIKA E PRODUKTIT TE RI (E paprekur) ---
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -114,7 +108,6 @@ const updateStatus = async (orderId: string, newStatus: string) => {
         </div>
       </div>
 
-      {/* BUTONAT PER TE NDRYSHUAR TABELAT (SHTUAR) */}
       <div className="flex gap-4 mb-6">
         <button onClick={() => setActiveTab('orders')} className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'orders' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>📦 Porositë</button>
         <button onClick={() => setActiveTab('products')} className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>🏷️ Produktet</button>
@@ -122,10 +115,9 @@ const updateStatus = async (orderId: string, newStatus: string) => {
 
       <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto shadow-2xl">
         {activeTab === 'orders' ? (
-          /* TABELA E POROSIVE (FIKS SI E KE PASUR) */
-          <table className="w-full text-left border-collapse min-w-[800px]">
+          <table className="w-full text-left border-collapse min-w-[800px] block sm:table overflow-x-auto">
             <thead>
-              <tr className="bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+              <tr className="bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] hidden sm:table-row">
                 <th className="p-6">Klienti</th>
                 <th className="p-6">Data</th>
                 <th className="p-6">Adresa & Tel</th>
@@ -134,57 +126,77 @@ const updateStatus = async (orderId: string, newStatus: string) => {
                 <th className="p-6">Veprime</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-slate-800/50 block sm:table-row-group">
               {orders.map((order: any) => (
-                <tr key={order._id} className="hover:bg-slate-800/30 transition-colors">
-                  <td className="p-6 text-white font-bold">{order.user?.name || "I panjohur"}</td>
-                  <td className="p-6 text-slate-400 text-xs font-medium">{new Date(order.createdAt).toLocaleDateString('sq-AL')}</td>
-                  <td className="p-6">
+                <tr key={order._id} className="hover:bg-slate-800/30 transition-colors block sm:table-row mb-4 sm:mb-0 border-b border-slate-700 sm:border-0">
+                  <td className="p-4 sm:p-6 text-white font-bold block sm:table-cell">
+                    <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-1">Klienti:</span>
+                    {order.user?.name || "I panjohur"}
+                  </td>
+                  <td className="p-4 sm:p-6 text-slate-400 text-xs font-medium block sm:table-cell">
+                     <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-1">Data:</span>
+                    {new Date(order.createdAt).toLocaleDateString('sq-AL')}
+                  </td>
+                  <td className="p-4 sm:p-6 block sm:table-cell">
+                    <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-1">Adresa & Tel:</span>
                     <p className="text-white text-sm truncate max-w-[200px]">{order.shippingAddress?.address || "Pa Adresë"}</p>
                     <p className="text-emerald-500 text-xs font-bold">{order.shippingAddress?.phone || "Pa Telefon"}</p>
                   </td>
-                  <td className="p-6 text-white font-black">{order.totalPrice.toLocaleString()} L</td>
-                  <td className="p-6">
+                  <td className="p-4 sm:p-6 text-white font-black block sm:table-cell">
+                    <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-1">Totali:</span>
+                    {order.totalPrice.toLocaleString()} L
+                  </td>
+                  <td className="p-4 sm:p-6 block sm:table-cell">
+                     <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-2">Statusi:</span>
                     <span className={`px-3 py-1 rounded-lg text-[9px] font-black uppercase border ${
-                      order.status === 'Paguar' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                      order.status === 'Nisur' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                      order.status === 'Porosia u dërgua' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                      order.status === 'Porosia u mor' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                     }`}>{order.status || 'Në Pritje'}</span>
                   </td>
-                  <td className="p-6 flex gap-2">
-                    <button onClick={() => updateStatus(order._id, 'Nisur')} className="w-8 h-8 flex items-center justify-center bg-blue-500/10 text-blue-400 rounded-lg border hover:bg-blue-500 hover:text-white transition-all" title="Nisur">🚀</button>
-                    <button onClick={() => updateStatus(order._id, 'Paguar')} className="w-8 h-8 flex items-center justify-center bg-emerald-500/10 text-emerald-400 rounded-lg border hover:bg-emerald-500 hover:text-white transition-all" title="Paguar">💵</button>
-                    <button onClick={() => setOrderToDelete(order._id)} className="w-8 h-8 flex items-center justify-center bg-rose-500/10 text-rose-400 rounded-lg border hover:bg-rose-500 hover:text-white transition-all ml-2" title="Fshi">🗑️</button>
+                  <td className="p-4 sm:p-6 flex gap-2 block sm:table-cell">
+                     <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-2">Veprime:</span>
+                     <div className="flex gap-2">
+                        {/* Butoni 1: Porosia u mor (Raketa) */}
+                        <button onClick={() => updateStatus(order._id, 'Porosia u mor')} className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/30 hover:bg-blue-500 hover:text-white transition-all" title="Porosia u mor">🚀</button>
+                        {/* Butoni 2: Porosia u dergua (Leku) */}
+                        <button onClick={() => updateStatus(order._id, 'Porosia u dërgua')} className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/30 hover:bg-emerald-500 hover:text-white transition-all" title="Porosia u dërgua">💵</button>
+                        {/* Butoni 3: Fshi */}
+                        <button onClick={() => setOrderToDelete(order._id)} className="w-10 h-10 sm:w-8 sm:h-8 flex items-center justify-center bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/30 hover:bg-rose-500 hover:text-white transition-all ml-auto sm:ml-2" title="Fshi">🗑️</button>
+                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         ) : (
-          /* TABELA E PRODUKTEVE (ME DIZAJNIN TOND) */
-          <table className="w-full text-left border-collapse min-w-[800px]">
+          <table className="w-full text-left border-collapse min-w-[800px] block sm:table overflow-x-auto">
             <thead>
-              <tr className="bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+              <tr className="bg-slate-800/50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] hidden sm:table-row">
                 <th className="p-6">Produkti</th>
                 <th className="p-6">Kategoria</th>
                 <th className="p-6">Çmimi</th>
                 <th className="p-6 text-right">Veprime</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/50">
+            <tbody className="divide-y divide-slate-800/50 block sm:table-row-group">
               {products.map((p: any) => (
-                <tr key={p._id} className="hover:bg-slate-800/30 transition-colors group">
-                  <td className="p-6 flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-700 shadow-lg">
+                <tr key={p._id} className="hover:bg-slate-800/30 transition-colors group block sm:table-row mb-4 sm:mb-0 border-b border-slate-700 sm:border-0">
+                  <td className="p-4 sm:p-6 flex items-center gap-4 block sm:table-cell">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-slate-700 shadow-lg inline-block align-middle">
                       <img src={p.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                     </div>
-                    <p className="text-white font-bold text-sm">{p.name}</p>
+                    <span className="text-white font-bold text-sm inline-block align-middle ml-4">{p.name}</span>
                   </td>
-                  <td className="p-6">
+                  <td className="p-4 sm:p-6 block sm:table-cell">
+                    <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-1">Kategoria:</span>
                     <span className="px-3 py-1 rounded-lg text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">{p.category}</span>
                   </td>
-                  <td className="p-6 text-white font-black">{p.price.toLocaleString()} L</td>
-                  <td className="p-6 text-right">
-                    <button onClick={() => setOrderToDelete(p._id)} className="px-4 py-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest active:scale-95">
+                  <td className="p-4 sm:p-6 text-white font-black block sm:table-cell">
+                    <span className="sm:hidden text-slate-500 text-[10px] uppercase block mb-1">Çmimi:</span>
+                    {p.price.toLocaleString()} L
+                  </td>
+                  <td className="p-4 sm:p-6 text-right block sm:table-cell">
+                    <button onClick={() => setOrderToDelete(p._id)} className="w-full sm:w-auto px-4 py-3 sm:py-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest active:scale-95">
                       🗑️ Fshi Produktin
                     </button>
                   </td>
@@ -195,7 +207,6 @@ const updateStatus = async (orderId: string, newStatus: string) => {
         )}
       </div>
 
-      {/* MODALI I FSHIRJES (DIZAJNI TOND - TANI PUNON PER TE DYJA) */}
       {orderToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center animate-in fade-in zoom-in duration-200">
@@ -209,7 +220,6 @@ const updateStatus = async (orderId: string, newStatus: string) => {
         </div>
       )}
 
-      {/* MODALI I SHTIMIT (I paprekur - fiks si kodi yt) */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 my-8">
