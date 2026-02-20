@@ -8,12 +8,11 @@ export default function AdminDashboard({ user }: { user: User }) {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
-  
 
   // STATE PER PRODUKTET E REJA
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
-    name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: ''
+    name: '', price: '', oldPrice: '', image: '', category: 'Veshje', badge: ''
   });
 
   const fetchOrders = async () => {
@@ -27,6 +26,7 @@ export default function AdminDashboard({ user }: { user: User }) {
 
   useEffect(() => { if (user.isAdmin) fetchOrders(); }, [user.token]);
 
+  // --- LOGJIKA E POROSIVE (E pandryshuar) ---
   const updateStatus = async (orderId: string, newStatus: string) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -44,6 +44,7 @@ export default function AdminDashboard({ user }: { user: User }) {
     } catch (err) { alert("Gabim gjatë fshirjes."); setOrderToDelete(null); }
   };
 
+  // --- LOGJIKA E PRODUKTIT TE RI ---
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -55,10 +56,10 @@ export default function AdminDashboard({ user }: { user: User }) {
       }, config);
       
       setIsProductModalOpen(false);
-      setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: '' });
+      setNewProduct({ name: '', price: '', oldPrice: '', image: '', category: 'Veshje', badge: '' });
       alert("✅ Produkti u shtua me sukses! Shko te faqja kryesore për ta parë.");
     } catch (err) {
-      alert("❌ Gabim gjatë shtimit të produktit. (A sigurove që Backend-i i ri u bë Push?)");
+      alert("❌ Gabim gjatë shtimit të produktit.");
     }
   };
 
@@ -76,6 +77,7 @@ export default function AdminDashboard({ user }: { user: User }) {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-10">
         <h1 className="text-4xl font-black text-white tracking-tighter">Panel <span className="text-emerald-500">Kryesor</span></h1>
         
+        {/* BUTONI I RI PER SHTIMIN E PRODUKTEVE */}
         <button 
           onClick={() => setIsProductModalOpen(true)}
           className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-sm flex items-center gap-2"
@@ -84,6 +86,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         </button>
       </div>
 
+      {/* STATISTIKAT DHE TABELA E POROSIVE (E pandryshuar) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
         <div className="bg-slate-800/60 p-6 rounded-[2rem] border border-slate-700/50 shadow-xl">
           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-2">Total Porosi</p>
@@ -138,6 +141,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         </table>
       </div>
 
+      {/* MODALI I FSHIRJES (I pandryshuar) */}
       {orderToDelete && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center">
@@ -151,6 +155,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       )}
 
+      {/* MODALI I RI PER SHTIMIN E PRODUKTIT */}
       {isProductModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
           <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 my-8">
@@ -177,23 +182,19 @@ export default function AdminDashboard({ user }: { user: User }) {
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Përshkrimi *</label>
-                <textarea required value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500 min-h-[80px]" placeholder="Materiali, detajet..." />
-              </div>
-
-              <div>
                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Kategoria *</label>
-                <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="Veshje, Bio..." />
+                <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="Veshje, Aksesorë..." />
               </div>
 
               <div>
                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Etiketa (Badge)</label>
-                <input type="text" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="EKSKLUZIVE..." />
+                <input type="text" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="EKSKLUZIVE, E RE..." />
               </div>
 
               <div>
                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Linku i Fotos (URL) *</label>
                 <input type="url" required value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="https://..." />
+                <p className="text-[10px] text-slate-500 mt-2 font-medium">Bëj copy-paste një link fotoje nga interneti (p.sh. nga Unsplash).</p>
               </div>
 
               <button type="submit" className="w-full mt-6 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black rounded-xl text-sm uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-emerald-500/20">
