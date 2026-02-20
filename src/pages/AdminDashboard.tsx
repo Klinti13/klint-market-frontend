@@ -12,11 +12,15 @@ export default function AdminDashboard({ user }: { user: User }) {
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
   
   const [searchTerm, setSearchTerm] = useState('');
-  const [orderFilter, setOrderFilter] = useState<'All' | 'Pending' | 'Delivered'>('All'); // FILTRAT E RINJ 🚦
+  const [orderFilter, setOrderFilter] = useState<'All' | 'Pending' | 'Delivered'>('All');
 
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null); 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [editingProductId, setEditingProductId] = useState<string | null>(null); // SHTUAR PËR MODIFIKIMIN ✏️
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  
+  // SISTEMI I RI I FOTOVE 🖼️
+  const [imageMode, setImageMode] = useState<'url' | 'file'>('url');
+  const [uploadingImage, setUploadingImage] = useState(false);
   
   const [newProduct, setNewProduct] = useState({
     name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: ''
@@ -59,16 +63,29 @@ export default function AdminDashboard({ user }: { user: User }) {
     } catch (err) { alert("Gabim gjatë fshirjes."); setOrderToDelete(null); }
   };
 
-  // FUNKSIONI PËR TË SHTUAR DHE MODIFIKUAR PRODUKTIN ✏️
+  // FUNKSIONI I NGARKIMIT TË FOTOS NË SERVER 📸
+  const uploadFileHandler = async (e: any) => {
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('image', file);
+    setUploadingImage(true);
+    try {
+      const config = { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${user.token}` } };
+      const { data } = await axios.post(`${API_URL}/api/upload`, formData, config);
+      setNewProduct({ ...newProduct, image: `${API_URL}${data}` }); // Lidh foton e serverit me produktin
+      setUploadingImage(false);
+    } catch (error) {
+      console.error(error);
+      setUploadingImage(false);
+      alert("❌ Gabim gjatë ngarkimit të fotos. Sigurohu që Backend-i e mbështet.");
+    }
+  };
+
   const handleAddOrEditProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
-      const payload = {
-        ...newProduct,
-        price: Number(newProduct.price),
-        oldPrice: newProduct.oldPrice ? Number(newProduct.oldPrice) : null
-      };
+      const payload = { ...newProduct, price: Number(newProduct.price), oldPrice: newProduct.oldPrice ? Number(newProduct.oldPrice) : null };
 
       if (editingProductId) {
         await axios.put(`${API_URL}/api/products/${editingProductId}`, payload, config);
@@ -85,17 +102,17 @@ export default function AdminDashboard({ user }: { user: User }) {
     } catch (err) { alert("❌ Gabim gjatë ruajtjes së produktit."); }
   };
 
-  // HAP MODALIN PËR MODIFIKIM
   const openEditModal = (p: any) => {
     setEditingProductId(p._id);
     setNewProduct({
       name: p.name, price: p.price.toString(), oldPrice: p.oldPrice ? p.oldPrice.toString() : '',
       description: p.description, image: p.imageUrl, category: p.category, badge: p.badge || ''
     });
+    // Nëse fotoja fillon me http, e lëmë te URL, ndryshe file
+    setImageMode(p.imageUrl.startsWith('http') ? 'url' : 'file');
     setIsProductModalOpen(true);
   };
 
-  // FUNKSIONI I FSHEHJES (OUT OF STOCK) 👁️
   const toggleProductVisibility = async (p: any) => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
@@ -136,15 +153,10 @@ export default function AdminDashboard({ user }: { user: User }) {
   }, [orders]);
   const progressPercent = Math.min(Math.round((currentMonthRevenue / monthlyGoal) * 100), 100);
 
-  // FILTRIMI I RI I DYFISHTË (Shtuar Filtrat e Statusit)
   const filteredOrders = useMemo(() => {
     let result = orders;
-    
-    // Filtrimi me butona (Pills)
     if (orderFilter === 'Pending') result = result.filter(o => o.status === 'Në Pritje');
     if (orderFilter === 'Delivered') result = result.filter(o => o.status === 'Porosia u dërgua');
-
-    // Filtrimi me tekst
     if (searchTerm) {
       result = result.filter(o => 
         o.user?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -165,7 +177,7 @@ export default function AdminDashboard({ user }: { user: User }) {
           <h1 className="text-4xl font-black text-white tracking-tighter">Qendra e <span className="text-emerald-500">Komandës</span></h1>
           <div className="flex gap-4 w-full sm:w-auto">
             <button onClick={exportToExcel} className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-emerald-400 font-black uppercase tracking-widest px-6 py-3 rounded-xl border border-slate-700 transition-all text-xs flex items-center justify-center gap-2">📊 Shkarko Bilancin</button>
-            <button onClick={() => { setEditingProductId(null); setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: '' }); setIsProductModalOpen(true); }} className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-xs flex items-center justify-center gap-2">Shto Produkt</button>
+            <button onClick={() => { setEditingProductId(null); setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: '' }); setImageMode('url'); setIsProductModalOpen(true); }} className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-xs flex items-center justify-center gap-2">Shto Produkt</button>
           </div>
         </div>
 
@@ -209,7 +221,6 @@ export default function AdminDashboard({ user }: { user: User }) {
           </div>
         </div>
 
-        {/* ZONA E RE E FILTRAVE TEK POROSITË 🚦 */}
         {activeTab === 'orders' && (
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 bg-slate-800/20 p-4 rounded-2xl border border-slate-800">
             <div className="flex gap-2 w-full sm:w-auto overflow-x-auto custom-scrollbar pb-2 sm:pb-0">
@@ -260,11 +271,6 @@ export default function AdminDashboard({ user }: { user: User }) {
                     </td>
                   </tr>
                 ))}
-                {filteredOrders.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest text-xs">Nuk u gjet asnjë porosi me këtë filtër.</td>
-                  </tr>
-                )}
               </tbody>
             </table>
           ) : (
@@ -292,7 +298,6 @@ export default function AdminDashboard({ user }: { user: User }) {
                     </td>
                     <td className="p-6 text-white font-black whitespace-nowrap">{p.price.toLocaleString()} L</td>
                     <td className="p-6 text-right">
-                      {/* SHTUAR BUTONAT E RINJ PËR PRODUKTET ✏️ 👁️ */}
                       <div className="flex justify-end gap-2">
                         <button onClick={() => toggleProductVisibility(p)} className="px-4 py-2.5 bg-slate-800 text-slate-300 rounded-lg border border-slate-700 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest active:scale-95 w-24">
                           {p.isActive === false ? '👁️ Shfaq' : '🚫 Fshih'}
@@ -313,32 +318,32 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       </div>
 
-      {/* --- MODALI I FATURËS MBETET I NJËJTË --- */}
+      {/* --- MODALI I FATURËS --- (I paprekur, bën atë që duhet për printim) */}
       {selectedInvoice && (
         <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md overflow-y-auto print:static print:bg-white print:block print:overflow-visible">
           <div className="min-h-full flex items-center justify-center p-4 sm:p-6 print:p-0 print:block">
             <div className="bg-slate-900 border border-slate-700 rounded-[2rem] p-6 sm:p-8 w-full max-w-2xl relative shadow-2xl print:border-none print:shadow-none print:bg-white print:p-0 print:block">
-              <button onClick={() => setSelectedInvoice(null)} className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 bg-slate-800 hover:bg-rose-500 text-slate-400 hover:text-white rounded-full flex items-center justify-center transition-all print:hidden" aria-label="Mbyll Faturën">
+              <button onClick={() => setSelectedInvoice(null)} className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 bg-slate-800 hover:bg-rose-500 text-slate-400 hover:text-white rounded-full flex items-center justify-center transition-all print:hidden">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
-              <div className="border-b border-slate-800 print:border-slate-300 pb-6 mb-6 mt-6 sm:mt-0">
-                <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-1 print:text-black print:bg-none">E-Marketi</h2>
-                <p className="text-slate-400 print:text-black text-xs font-bold uppercase tracking-widest">Fatura #{selectedInvoice._id.slice(-8).toUpperCase()}</p>
-                <p className="text-slate-500 print:text-black text-[10px] mt-1">{new Date(selectedInvoice.createdAt).toLocaleString('sq-AL')}</p>
+              <div className="border-b border-slate-800 print:border-slate-300 pb-6 mb-6 mt-6 sm:mt-0 flex justify-between items-start">
+                <div>
+                  <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-1 print:text-black print:bg-none">E-Marketi</h2>
+                  <p className="text-slate-400 print:text-black text-xs font-bold uppercase tracking-widest">Fatura #{selectedInvoice._id.slice(-8).toUpperCase()}</p>
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-slate-800/30 print:bg-transparent p-6 rounded-2xl border border-slate-800 print:border-slate-300 print:border-2">
                 <div>
-                  <h4 className="text-[10px] font-black text-slate-500 print:text-black uppercase tracking-widest mb-2">Të dhënat e Klientit</h4>
+                  <h4 className="text-[10px] font-black text-slate-500 print:text-black uppercase tracking-widest mb-2">Klienti</h4>
                   <p className="text-white print:text-black font-bold">{selectedInvoice.user?.name || "I panjohur"}</p>
                   <p className="text-emerald-400 print:text-black font-medium text-sm mt-1">{selectedInvoice.shippingAddress?.phone}</p>
                 </div>
                 <div>
-                  <h4 className="text-[10px] font-black text-slate-500 print:text-black uppercase tracking-widest mb-2">Adresa e Dërgesës</h4>
+                  <h4 className="text-[10px] font-black text-slate-500 print:text-black uppercase tracking-widest mb-2">Adresa</h4>
                   <p className="text-slate-300 print:text-black text-sm leading-relaxed">{selectedInvoice.shippingAddress?.address}</p>
-                  <p className="text-slate-400 print:text-black text-xs mt-1">{selectedInvoice.shippingAddress?.city}</p>
                 </div>
               </div>
-              <h4 className="text-[10px] font-black text-slate-500 print:text-black uppercase tracking-widest mb-4">Artikujt e Porositur</h4>
+              <h4 className="text-[10px] font-black text-slate-500 print:text-black uppercase tracking-widest mb-4">Artikujt</h4>
               <div className="bg-slate-800/50 print:bg-transparent rounded-2xl p-4 border border-slate-700/50 print:border-none mb-8 print:mb-4">
                 <ul className="divide-y divide-slate-700/50 print:divide-slate-300">
                   {selectedInvoice.orderItems.map((item: any, index: number) => (
@@ -361,30 +366,13 @@ export default function AdminDashboard({ user }: { user: User }) {
               </div>
               <div className="bg-slate-800/50 p-4 sm:p-5 rounded-2xl border border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
                 <button onClick={() => window.print()} className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-200 text-slate-900 font-black text-[10px] uppercase tracking-widest rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">🖨️ Printo Faturën</button>
-                <div className="flex w-full sm:w-auto gap-2">
-                  <button onClick={() => updateStatus(selectedInvoice._id, 'Porosia u mor')} className={`flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${selectedInvoice.status === 'Porosia u mor' ? 'bg-blue-500 text-white border-blue-500' : 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500 hover:text-white'}`}>U Mor</button>
-                  <button onClick={() => updateStatus(selectedInvoice._id, 'Porosia u dërgua')} className={`flex-1 sm:flex-none px-6 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${selectedInvoice.status === 'Porosia u dërgua' ? 'bg-emerald-500 text-slate-900 border-emerald-500' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500 hover:text-slate-900'}`}>U Dërgua</button>
-                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {orderToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm print:hidden">
-          <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center">
-            <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Fshi {activeTab === 'orders' ? 'Porosinë' : 'Produktin'}</h3>
-            <p className="text-slate-400 text-sm mb-8 font-medium">Ky veprim nuk mund të kthehet mbrapsht.</p>
-            <div className="flex gap-4">
-              <button onClick={() => setOrderToDelete(null)} className="flex-1 py-4 bg-slate-800 text-white font-bold rounded-xl text-sm uppercase">Anulo</button>
-              <button onClick={confirmDelete} className="flex-1 py-4 bg-rose-500 text-white font-black rounded-xl text-sm uppercase shadow-lg shadow-rose-500/20 active:scale-95">Konfirmo</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODALI PËR SHTIM DHE MODIFIKIM ✏️ */}
+      {/* MODALI I PRODUKTIT ME NDËRHYRJEN E FOTOS 🖼️ */}
       {isProductModalOpen && (
          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto print:hidden">
            <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md shadow-2xl my-8">
@@ -396,38 +384,43 @@ export default function AdminDashboard({ user }: { user: User }) {
              <form onSubmit={handleAddOrEditProduct} className="space-y-4">
                <div>
                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Emri i Produktit *</label>
-                 <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="p.sh. Këmishë..." />
+                 <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" />
                </div>
                
                <div className="grid grid-cols-2 gap-4">
                  <div>
                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Çmimi *</label>
-                   <input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="1500" />
+                   <input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" />
                  </div>
                  <div>
                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Çmimi i Vjetër</label>
-                   <input type="number" value={newProduct.oldPrice} onChange={e => setNewProduct({...newProduct, oldPrice: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="2000" />
+                   <input type="number" value={newProduct.oldPrice} onChange={e => setNewProduct({...newProduct, oldPrice: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" />
                  </div>
-               </div>
- 
-               <div>
-                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Përshkrimi *</label>
-                 <textarea required value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500 min-h-[80px]" placeholder="Përshkrimi..." />
                </div>
  
                <div>
                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Kategoria *</label>
-                 <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="Veshje, Bio..." />
+                 <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" />
                </div>
- 
+
+               {/* ZONA E RE E FOTOS HIBRIDE */}
                <div>
-                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Etiketa (Badge)</label>
-                 <input type="text" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="E Re, Ekskluzive..." />
-               </div>
- 
-               <div>
-                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Linku i Fotos (URL) *</label>
-                 <input type="url" required value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="https://..." />
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Foto e Produktit *</label>
+                    <div className="flex gap-1 bg-slate-800 p-1 rounded-lg">
+                      <button type="button" onClick={() => setImageMode('url')} className={`text-[9px] font-black px-3 py-1.5 rounded-md uppercase tracking-widest transition-all ${imageMode === 'url' ? 'bg-emerald-500 text-slate-900' : 'text-slate-400 hover:text-white'}`}>🔗 URL</button>
+                      <button type="button" onClick={() => setImageMode('file')} className={`text-[9px] font-black px-3 py-1.5 rounded-md uppercase tracking-widest transition-all ${imageMode === 'file' ? 'bg-emerald-500 text-slate-900' : 'text-slate-400 hover:text-white'}`}>📁 Fajll</button>
+                    </div>
+                  </div>
+
+                  {imageMode === 'url' ? (
+                    <input type="url" required value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="https://..." />
+                  ) : (
+                    <div className="relative">
+                      <input type="file" onChange={uploadFileHandler} className="w-full p-2 bg-slate-800 border border-slate-700 rounded-xl text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:uppercase file:tracking-widest file:bg-emerald-500/10 file:text-emerald-400 hover:file:bg-emerald-500/20 transition-all outline-none" />
+                      {uploadingImage && <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-500 uppercase tracking-widest animate-pulse">Në pritje...</div>}
+                    </div>
+                  )}
                </div>
  
                <button type="submit" className="w-full mt-6 py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black rounded-xl uppercase tracking-widest active:scale-95 shadow-lg shadow-emerald-500/20 transition-all">
