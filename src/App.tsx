@@ -8,8 +8,8 @@ import Cart from './pages/Cart';
 import Profile from './pages/Profile'; 
 import type { CartItem, Product, User } from './types';
 import AdminDashboard from './pages/AdminDashboard';
+import About from './pages/About'; // <-- SHTUAM FAQEN E RE
 
-// KJO LINJE LIDH FRONTEND-IN ME BACKEND-IN LIVE
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 function App() {
@@ -32,6 +32,9 @@ function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  
+  // <-- SHTUAM STATE PËR KËRKIMIN NGA NAVBAR
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     localStorage.setItem("emarketi_cart", JSON.stringify(cartItems));
@@ -55,10 +58,10 @@ function App() {
         ? { email, password } 
         : { name, email, password };
 
-      // PERDORIM API_URL DINAMIKE
       const { data } = await axios.post(`${API_URL}/api/users/${endpoint}`, payload);
       
-      setUser({ ...data, isLoggedIn: true, points: data.points || 0 });      setIsAuthOpen(false);
+      setUser({ ...data, isLoggedIn: true, points: data.points || 0 });      
+      setIsAuthOpen(false);
       setEmail('');
       setPassword('');
       setName('');
@@ -107,11 +110,14 @@ function App() {
           user={user} 
           onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} 
           onLogout={handleLogout} 
+          searchTerm={searchTerm} onSearchChange={setSearchTerm} // <-- LIDHJA ME NAVBAR
         />
         
         <Routes>
-          <Route path="/" element={<Home onAddToCart={handleAddToCart} />} />
+          {/* KALUAM SEARCH TERM TE HOME */}
+          <Route path="/" element={<Home onAddToCart={handleAddToCart} searchTerm={searchTerm} />} />
           <Route path="/admin" element={<AdminDashboard user={user} />} />
+          <Route path="/about" element={<About />} /> {/* <-- RRUGA E RE */}
           <Route path="/cart" element={
             <Cart 
               items={cartItems} 
@@ -133,7 +139,6 @@ function App() {
           onLogout={handleLogout} 
         />
 
-        {/* MODALI I LOGIMIT (PA NDRYSHIME NE DIZAJN) */}
         {isAuthOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             <div className="bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200">

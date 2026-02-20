@@ -4,24 +4,21 @@ import type { Product } from '../types';
 
 interface HomeProps {
   onAddToCart: (product: Product) => void;
+  searchTerm?: string; // <-- SHTUAR PËR KËRKIMIN
 }
 
-export default function Home({ onAddToCart }: HomeProps) {
-  // 1. Krijojmë state për produktet reale dhe një gjendje "Loading"
+export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 2. Tërheqim të dhënat nga Serveri yt në portën 5001
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-// Zëvendëso rreshtin e vjetër me këtë:
-const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`);        
-        // Përkthejmë të dhënat e MongoDB në formatin që do React-i yt
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`);        
         const dbProducts = response.data.map((p: any) => ({
           ...p,
-          id: p._id,          // Databaza jep _id, React do id
-          image: p.imageUrl   // Databaza jep imageUrl, React do image
+          id: p._id,
+          image: p.imageUrl
         }));
         
         setProducts(dbProducts);
@@ -35,9 +32,19 @@ const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`)
     fetchProducts();
   }, []);
   
-  // Tani përdorim 'products' nga Databaza, jo më listën false
-  const offers = useMemo(() => products.filter(p => p.oldPrice), [products]);
-  const regularProducts = useMemo(() => products.filter(p => !p.oldPrice), [products]);
+  // <-- LOGJIKA E RE PËR FILTRIMIN LIVE NGA NAVBAR
+  const filteredProducts = useMemo(() => {
+    if (!searchTerm) return products;
+    const lower = searchTerm.toLowerCase();
+    return products.filter(p => 
+      p.name.toLowerCase().includes(lower) || 
+      p.category.toLowerCase().includes(lower)
+    );
+  }, [products, searchTerm]);
+
+  // Tani përdorim 'filteredProducts' në vend të 'products'
+  const offers = useMemo(() => filteredProducts.filter(p => p.oldPrice), [filteredProducts]);
+  const regularProducts = useMemo(() => filteredProducts.filter(p => !p.oldPrice), [filteredProducts]);
 
   const groupedProducts = useMemo(() => {
     return regularProducts.reduce((acc, product) => {
@@ -47,7 +54,6 @@ const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`)
     }, {} as Record<string, Product[]>);
   }, [regularProducts]);
 
-  // Pamja derisa të vijnë produktet
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -61,15 +67,25 @@ const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`)
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20">
       
-      <div className="relative w-full h-72 sm:h-96 rounded-[2rem] overflow-hidden mb-16 shadow-2xl shadow-emerald-500/10 group">
-        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&q=80" alt="Supermarket" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent"></div>
-        <div className="absolute inset-0 p-8 sm:p-16 flex flex-col justify-center max-w-2xl">
-          <span className="bg-emerald-500 text-slate-900 font-black uppercase tracking-widest text-xs px-4 py-1.5 rounded-full w-max mb-6">Ekskluzive</span>
-          <h1 className="text-4xl sm:text-6xl font-black text-white mb-6 leading-[1.1]">Zbuloni Ofertat e <br/><span className="text-emerald-400">Produkteve 100% Bio</span></h1>
-          <p className="text-slate-300 text-lg sm:text-xl font-medium">Cilësi e garantuar. Zgjidhni më të mirën për familjen tuaj.</p>
+      {/* FSHIHET BANNERI NËSE JEMI DUKE KËRKUAR DIÇKA */}
+      {!searchTerm && (
+        <div className="relative w-full h-72 sm:h-96 rounded-[2rem] overflow-hidden mb-16 shadow-2xl shadow-emerald-500/10 group">
+          <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&q=80" alt="Supermarket" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent"></div>
+          <div className="absolute inset-0 p-8 sm:p-16 flex flex-col justify-center max-w-2xl">
+            <span className="bg-emerald-500 text-slate-900 font-black uppercase tracking-widest text-xs px-4 py-1.5 rounded-full w-max mb-6">Ekskluzive</span>
+            <h1 className="text-4xl sm:text-6xl font-black text-white mb-6 leading-[1.1]">Zbuloni Ofertat e <br/><span className="text-emerald-400">Produkteve 100% Bio</span></h1>
+            <p className="text-slate-300 text-lg sm:text-xl font-medium">Cilësi e garantuar. Zgjidhni më të mirën për familjen tuaj.</p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* MESAZHI NËSE KËRKIMI NUK GJEN GJË */}
+      {searchTerm && filteredProducts.length === 0 && (
+        <div className="text-center py-20">
+          <p className="text-slate-400 text-xl font-bold">Nuk u gjet asnjë produkt për "{searchTerm}"</p>
+        </div>
+      )}
 
       {offers.length > 0 && (
         <div className="mb-20">
@@ -88,7 +104,8 @@ const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`)
         </div>
       )}
 
-      <div className="space-y-20">
+      {/* SHTUAM id="kategorite" QË TË LIDHET ME NAVBARIN */}
+      <div id="kategorite" className="space-y-20 pt-8">
         {Object.entries(groupedProducts).map(([category, products]) => (
           <div key={category}>
             <div className="flex items-center gap-4 mb-8">
