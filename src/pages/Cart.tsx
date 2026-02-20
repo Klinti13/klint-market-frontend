@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import type { CartItem, User } from '../types';
 import { Link, useNavigate } from 'react-router-dom';
@@ -10,7 +10,7 @@ interface CartProps {
   onRemove: (id: any) => void;
   onClearCart: () => void;
   onUpdatePoints: (points: number) => void;
-  onOpenAuth: () => void; // Lidhja me modalin tend
+  onOpenAuth: () => void; 
 }
 
 export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, onUpdatePoints, onOpenAuth }: CartProps) {
@@ -19,42 +19,32 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
   const [city, setCity] = useState('Elbasan'); 
   const [phone, setPhone] = useState('');
   
-  const [promoCode, setPromoCode] = useState('');
-  const [discountPercent, setDiscountPercent] = useState(0);
-  const [promoMessage, setPromoMessage] = useState('');
+  const [useVipCard, setUseVipCard] = useState(false); // LOGJIKA E RE PËR KARTËN
   const [isProcessing, setIsProcessing] = useState(false);
-  const [addressError, setAddressError] = useState(false); // Per gabimin vizual
+  const [addressError, setAddressError] = useState(false); 
 
   const [showSuccess, setShowSuccess] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
+  const [deductedPoints, setDeductedPoints] = useState(0); // Tregon sa pikë iu hoqën
 
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
+  
+  // Nese butoni eshte shtypur, apliko 10%. Ndryshe 0%.
+  const discountPercent = useVipCard ? 0.10 : 0;
   const discountAmount = subtotal * discountPercent;
   const totalPrice = subtotal - discountAmount;
 
-  function applyPromoCode() {
+  const userPoints = user.points || 0;
+  const canUseVip = userPoints >= 1000;
+
+  const handleCheckout = async () => {
     if (!user.isLoggedIn) {
       onOpenAuth(); 
       return;
     }
-    const code = promoCode.trim().toUpperCase();
-    if (code === 'KLINT10' || code === 'BONUS') {
-      setDiscountPercent(0.10);
-      setPromoMessage('Karta e bonusit u aplikua! (-10%)');
-    } else {
-      setDiscountPercent(0);
-      setPromoMessage('Kodi nuk është i vlefshëm.');
-    }
-  }
-
-  const handleCheckout = async () => {
-    if (!user.isLoggedIn) {
-      onOpenAuth(); // Hap direkt modalin tend
-      return;
-    }
 
     if (!address.trim() || !phone.trim()) {
-      setAddressError(true); // Aktivizon dizajnin e gabimit
+      setAddressError(true); 
       setTimeout(() => setAddressError(false), 3000);
       return;
     }
@@ -66,19 +56,21 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
         orderItems: items.map(item => ({ name: item.name, qty: item.qty, image: item.image, price: item.price, product: item.id })),
         shippingAddress: { address, city, phone },
         totalPrice: totalPrice,
+        useVipPoints: useVipCard // I TREGOJMË BACKEND-IT QË PO PËRDORIM KARTËN
       };
 
-// Zëvendëso rreshtin e vjetër me këtë:
-const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, orderData, config);      
+      const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, orderData, config);      
+      
       if (data.points !== undefined) {
         setEarnedPoints(Math.floor(totalPrice / 100));
+        if (useVipCard) setDeductedPoints(1000);
         onUpdatePoints(data.points);
       }
       
       setShowSuccess(true);
       onClearCart();
     } catch (error: any) {
-      console.error("Gabim");
+      console.error("Gabim gjatë blerjes");
     } finally {
       setIsProcessing(false);
     }
@@ -98,7 +90,6 @@ const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, 
       <div className="lg:col-span-2 space-y-8">
         <h1 className="text-3xl font-black text-white mb-2">Shporta e Blerjeve</h1>
         
-        {/* LISTA E PRODUKTEVE */}
         <div className="bg-slate-800/40 border border-slate-700/50 rounded-[2rem] overflow-hidden shadow-2xl">
           <ul className="divide-y divide-slate-700/20">
             {items.map(item => (
@@ -121,7 +112,6 @@ const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, 
           </ul>
         </div>
 
-        {/* FORMA E ADRESËS - ME DIZAJNIN E RI TE GABIMIT */}
         <div className={`bg-slate-800/40 border transition-all duration-300 rounded-[2rem] p-8 shadow-2xl ${addressError ? 'border-rose-500/50 bg-rose-500/5' : 'border-slate-700/50'}`}>
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-black text-white uppercase tracking-widest">Adresa e Dërgesës</h2>
@@ -145,7 +135,6 @@ const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, 
         </div>
       </div>
 
-      {/* SUMMARY SIDEBAR - E PA PREKUR SI DIZAJN, VETEM LOGJIKA E BUTONIT */}
       <div className="bg-slate-800/60 p-8 rounded-[2rem] border border-slate-700/50 h-max sticky top-28 shadow-2xl">
          <h2 className="text-2xl font-black text-white mb-6 border-b border-slate-700/50 pb-6">Përmbledhja</h2>
          <div className="space-y-4 text-slate-300 mb-8 border-b border-slate-700/50 pb-8">
@@ -155,19 +144,36 @@ const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, 
            </div>
            {discountPercent > 0 && (
              <div className="flex justify-between items-center text-emerald-400 font-bold">
-               <span>Zbritje ({discountPercent * 100}%)</span>
+               <span>Karta VIP (-10%)</span>
                <span>- {discountAmount.toLocaleString()} L</span>
              </div>
            )}
          </div>
 
-         <div className="mb-8">
-           <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">Karta e Klientit</label>
-           <div className="flex gap-2">
-             <input type="text" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} placeholder="Kodi" className="flex-grow p-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600" />
-             <button onClick={applyPromoCode} className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 rounded-xl text-xs transition-colors uppercase tracking-widest">Apliko</button>
-           </div>
-           {promoMessage && <p className={`text-[10px] font-bold mt-2 ${discountPercent > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{promoMessage}</p>}
+         {/* SEKSIONI I KARTËS VIP */}
+         <div className="mb-8 border border-slate-700/50 rounded-2xl p-4 bg-slate-900/50">
+           <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">VIP Card</label>
+           {user.isLoggedIn ? (
+             canUseVip ? (
+               <div className="space-y-3">
+                 <p className="text-xs text-slate-300 font-medium">Keni <span className="text-emerald-400 font-bold">{userPoints}</span> pikë. Përdorni 1000 për -10% ulje.</p>
+                 <button 
+                   onClick={() => setUseVipCard(!useVipCard)} 
+                   className={`w-full font-black px-4 py-3 rounded-xl text-xs transition-all uppercase tracking-widest border ${
+                     useVipCard ? 'bg-rose-500/10 text-rose-400 border-rose-500/30 hover:bg-rose-500 hover:text-white' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500 hover:text-slate-900'
+                   }`}
+                 >
+                   {useVipCard ? 'Hiq Kartën VIP' : 'Aktivizo Kartën VIP'}
+                 </button>
+               </div>
+             ) : (
+               <p className="text-xs text-slate-400 font-medium">
+                 Keni <span className="text-white font-bold">{userPoints}</span> pikë. Ju duhen edhe <span className="text-emerald-400 font-bold">{1000 - userPoints}</span> për të aktivizuar 10% ulje.
+               </p>
+             )
+           ) : (
+             <p className="text-xs text-slate-500">Logohuni për të parë pikët VIP.</p>
+           )}
          </div>
 
          <div className="flex justify-between items-end mb-8">
@@ -175,7 +181,6 @@ const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, 
             <span className="text-4xl font-black text-white">{totalPrice.toLocaleString()} L</span>
          </div>
 
-         {/* LOGJIKA E RE E BUTONIT BRENDA SUMMARY-T TEND */}
          {user.isLoggedIn ? (
             <button 
               onClick={handleCheckout}
@@ -199,7 +204,6 @@ const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, 
          <p className="text-[10px] text-slate-500 font-bold text-center mt-6 uppercase tracking-widest">Pagesa kryhet CASH në dorëzim</p>
       </div>
 
-      {/* SUCCESS MODAL */}
       {showSuccess && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/95 backdrop-blur-2xl">
           <div className="bg-slate-900 border border-emerald-500/30 rounded-[3rem] p-12 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-300 text-center">
@@ -207,11 +211,17 @@ const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, 
               <svg className="w-10 h-10 text-slate-900" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="4"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
             </div>
             <h2 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">U krye!</h2>
-            <div className="bg-emerald-500/10 rounded-2xl p-4 mb-10">
+            <div className="bg-emerald-500/10 rounded-2xl p-4 mb-4">
                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest block mb-1">Pikët e fituara</span>
                <span className="text-3xl font-black text-emerald-400">+{earnedPoints}</span>
             </div>
-            <button onClick={() => navigate('/profile')} className="w-full py-4 bg-white text-slate-900 font-black rounded-xl uppercase tracking-widest text-xs">Gjurmo Porosinë</button>
+            {/* Tregon nëse janë zbritur pikë */}
+            {deductedPoints > 0 && (
+              <div className="bg-rose-500/10 rounded-2xl p-3 mb-10 border border-rose-500/20">
+                <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Pikë të përdorura: -1000</span>
+              </div>
+            )}
+            <button onClick={() => navigate('/profile')} className="w-full py-4 bg-white text-slate-900 font-black rounded-xl uppercase tracking-widest text-xs mt-6">Gjurmo Porosinë</button>
           </div>
         </div>
       )}
