@@ -16,16 +16,14 @@ interface NavbarProps {
 
 export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTerm, onSearchChange }: NavbarProps) {
   const [showConfirm, setShowConfirm] = useState(false);
-  const [categories, setCategories] = useState<string[]>([]); // SHTUAR: Mban kategoritë dinamike
+  const [categories, setCategories] = useState<string[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // SHTUAR: Merr kategoritë nga produktet sapo hapet faqja
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const { data } = await axios.get(`${API_URL}/api/products`);
-        // Nxjerrim vetëm kategoritë unike (pa i përsëritur) dhe heqim ato boshe
         const uniqueCategories = Array.from(new Set(data.map((p: any) => p.category).filter(Boolean)));
         setCategories(uniqueCategories as string[]);
       } catch (error) {
@@ -35,28 +33,29 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
     fetchCategories();
   }, []);
 
-  // FUNKSIONI PËR TË LËVIZUR DHE FILTRUAR
+  // FUNKSIONI I RI: Pastron filtrat kur shtyp logon ose "Marketi"
+  const handleHomeClick = () => {
+    if (onSearchChange) {
+      onSearchChange(''); // Pastron kutinë e kërkimit / filtrin e kategorisë
+    }
+    // E çon faqen në majë fare
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleCategorySelect = (e: React.MouseEvent, categoryName: string) => {
     e.preventDefault();
-    
-    // 1. Shkojmë në faqen kryesore nëse nuk jemi aty
     if (location.pathname !== '/') {
       navigate('/');
     }
-    
-    // 2. Vendosim emrin e kategorisë te search-i (kjo do filtrojë produktet automatikisht)
     if (onSearchChange) {
       onSearchChange(categoryName);
     }
-
-    // 3. Bëjmë scroll "smooth" poshtë
     setTimeout(() => {
       const element = document.getElementById('kategorite') || document.body;
       element?.scrollIntoView({ behavior: 'smooth' });
     }, 300);
   };
 
-  // Funksioni i vjetër vetëm për klikimin mbi fjalën kryesore "Kategoritë"
   const handleScrollToProducts = (e: React.MouseEvent) => {
     e.preventDefault();
     if (location.pathname !== '/') navigate('/');
@@ -70,7 +69,12 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
     <nav className="bg-slate-900 border-b border-slate-800 p-4 sm:p-5 sticky top-0 z-40 shadow-2xl">
       <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
         
-        <Link to="/" className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter shrink-0">
+        {/* LOGOJA: Tani pastron filtrat kur klikohet */}
+        <Link 
+          to="/" 
+          onClick={handleHomeClick} 
+          className="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter shrink-0"
+        >
           E-Marketi
         </Link>
         
@@ -90,7 +94,14 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
         <div className="flex items-center gap-4 sm:gap-6 shrink-0">
           
           <div className="hidden lg:flex items-center gap-6 text-sm font-bold mr-2">
-            <Link to="/" className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]">Marketi</Link>
+            {/* LINKU I MARKETIT: Tani pastron filtrat kur klikohet */}
+            <Link 
+              to="/" 
+              onClick={handleHomeClick} 
+              className="text-slate-300 hover:text-emerald-400 transition-colors uppercase tracking-widest text-[10px]"
+            >
+              Marketi
+            </Link>
             
             <div className="relative group py-2">
               <button 
@@ -103,7 +114,6 @@ export default function Navbar({ cartCount, user, onOpenAuth, onLogout, searchTe
 
               <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-slate-900/95 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-4 group-hover:translate-y-0 overflow-hidden z-50">
                 <div className="p-2 flex flex-col max-h-60 overflow-y-auto custom-scrollbar">
-                  {/* NDRYSHIMI: Tani shfaqim kategoritë dinamike nga Databaza */}
                   {categories.length > 0 ? (
                     categories.map((cat) => (
                       <button 
