@@ -58,8 +58,7 @@ function App() {
       // PERDORIM API_URL DINAMIKE
       const { data } = await axios.post(`${API_URL}/api/users/${endpoint}`, payload);
       
-      setUser({ ...data, isLoggedIn: true });
-      setIsAuthOpen(false);
+      setUser({ ...data, isLoggedIn: true, points: data.points || 0 });      setIsAuthOpen(false);
       setEmail('');
       setPassword('');
       setName('');

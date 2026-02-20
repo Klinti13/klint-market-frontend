@@ -15,8 +15,8 @@ export default function Home({ onAddToCart }: HomeProps) {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/products');
-        
+// Zëvendëso rreshtin e vjetër me këtë:
+const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/products`);        
         // Përkthejmë të dhënat e MongoDB në formatin që do React-i yt
         const dbProducts = response.data.map((p: any) => ({
           ...p,

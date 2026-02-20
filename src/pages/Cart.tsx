@@ -68,8 +68,8 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
         totalPrice: totalPrice,
       };
 
-      const { data } = await axios.post('http://localhost:5001/api/orders', orderData, config);
-      
+// Zëvendëso rreshtin e vjetër me këtë:
+const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, orderData, config);      
       if (data.points !== undefined) {
         setEarnedPoints(Math.floor(totalPrice / 100));
         onUpdatePoints(data.points);
