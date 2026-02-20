@@ -31,7 +31,6 @@ export default function Profile({ user }: { user: User }) {
   const isVipEligible = points >= 1000;
   const pointsNeeded = 1000 - points;
 
-  // LLOGJIKA E RE E NGJYRAVE PËR KLIENTIN 🚥
   const getStatusBadge = (status: string) => {
     const baseClasses = "px-5 py-3 sm:px-4 sm:py-2 rounded-xl sm:rounded-full text-[10px] font-black uppercase tracking-widest border text-center w-full sm:w-auto transition-all duration-300";
     
@@ -50,7 +49,7 @@ export default function Profile({ user }: { user: User }) {
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-24 text-slate-200">
       
-      <div className="mb-16">
+      <div className="mb-12">
         <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-8">
           Llogaria <span className="text-emerald-500">Ime</span>
         </h1>
@@ -123,6 +122,24 @@ export default function Profile({ user }: { user: User }) {
         </div>
       </div>
 
+      {/* SEKSIONI I RI PËR ADRESËN DHE TELEFONIN E RUAJTUR */}
+      <div className="mb-12">
+        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight mb-6">Të Dhënat e Dërgesës</h2>
+        <div className="bg-slate-800/40 border border-slate-700/50 p-6 sm:p-8 rounded-[2rem] flex flex-col sm:flex-row gap-6">
+          <div className="flex-1 bg-slate-900/50 p-5 rounded-2xl border border-slate-700/50 relative overflow-hidden">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Adresa Zyrtare</span>
+            <p className="text-white font-bold text-lg">{user.address ? `${user.address}, ${user.city || 'Elbasan'}` : 'Nuk keni ruajtur një adresë.'}</p>
+          </div>
+          <div className="flex-1 bg-slate-900/50 p-5 rounded-2xl border border-slate-700/50 relative overflow-hidden">
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Numri i Telefonit</span>
+            <p className="text-white font-bold text-lg">{user.phone || 'Nuk keni ruajtur një numër.'}</p>
+          </div>
+        </div>
+        <p className="text-[10px] font-bold text-slate-500 mt-4 uppercase tracking-widest text-center sm:text-left">
+          💡 Shënim: Për të ndryshuar këto të dhëna, thjesht shkruani adresën e re gjatë blerjes në shportë. Sistemi do ta përditësojë automatikisht për herën tjetër!
+        </p>
+      </div>
+
       <div className="mb-8">
         <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Historiku i Porosive</h2>
         <div className="w-12 h-1 bg-emerald-500 mt-4 rounded-full"></div>
@@ -143,7 +160,6 @@ export default function Profile({ user }: { user: User }) {
                 <p className="text-slate-400 text-xs font-medium">{new Date(order.createdAt).toLocaleDateString('sq-AL')}</p>
               </div>
               
-              {/* Tani thërrasim funksionin që i vizaton ngjyrat ekzakte si tek Admini */}
               {getStatusBadge(order.status)}
               
             </div>
