@@ -10,11 +10,9 @@ export default function AdminDashboard({ user }: { user: User }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'orders' | 'products'>('orders');
   const [orderToDelete, setOrderToDelete] = useState<string | null>(null);
-  
   const [searchTerm, setSearchTerm] = useState('');
 
-  // STATE PËR FATURËN DHE PRODUKTET
-  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null); // Hap detajet e porosisë
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null); 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [newProduct, setNewProduct] = useState({
     name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: ''
@@ -43,9 +41,7 @@ export default function AdminDashboard({ user }: { user: User }) {
       if (selectedInvoice && selectedInvoice._id === orderId) {
         setSelectedInvoice({ ...selectedInvoice, status: newStatus });
       }
-    } catch (err) {
-      alert("Gabim gjatë përditësimit të statusit. Kontrollo Backend-in!");
-    }
+    } catch (err) { alert("Gabim gjatë përditësimit!"); }
   };
 
   const confirmDelete = async () => {
@@ -68,14 +64,37 @@ export default function AdminDashboard({ user }: { user: User }) {
         price: Number(newProduct.price),
         oldPrice: newProduct.oldPrice ? Number(newProduct.oldPrice) : null
       }, config);
-      
       setIsProductModalOpen(false);
       setNewProduct({ name: '', price: '', oldPrice: '', description: '', image: '', category: 'Veshje', badge: '' });
       fetchData();
       alert("✅ Produkti u shtua me sukses!");
-    } catch (err) {
-      alert("❌ Gabim gjatë shtimit të produktit.");
-    }
+    } catch (err) { alert("❌ Gabim gjatë shtimit të produktit."); }
+  };
+
+  // --- FUNKSIONI I RI PËR EXCEL (CSV) ---
+  const exportToExcel = () => {
+    // Krijojmë titujt e kolonave
+    let csvContent = "data:text/csv;charset=utf-8,ID Porosise,Data,Klienti,Telefoni,Qyteti,Adresa,Statusi,Totali (Lek)\n";
+    
+    // Fusim të dhënat e porosive që shfaqen në tabelë
+    filteredOrders.forEach(order => {
+      const date = new Date(order.createdAt).toLocaleDateString('sq-AL');
+      const name = order.user?.name || "I panjohur";
+      const phone = order.shippingAddress?.phone || "";
+      const city = order.shippingAddress?.city || "";
+      const address = `"${order.shippingAddress?.address || ""}"`; // Thonjëza që të mos prishë presjet
+      const row = `${order._id},${date},${name},${phone},${city},${address},${order.status},${order.totalPrice}`;
+      csvContent += row + "\n";
+    });
+
+    // Shkarkojmë skedarin
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Bilanci_E_Marketi_${new Date().toLocaleDateString('sq-AL')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const totalRevenue = useMemo(() => orders.reduce((acc, order) => acc + (order.totalPrice || 0), 0), [orders]);
@@ -102,19 +121,32 @@ export default function AdminDashboard({ user }: { user: User }) {
   if (!user.isAdmin) return <div className="p-20 text-center text-rose-500 font-black tracking-widest uppercase">Aksesi i Mohuar!</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24 relative">
+    // print:bg-white siguron që kur printohet të mos harxhojë bojën e zezë kot
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24 relative print:bg-white print:p-0">
       
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+      {/* Pjesa lart e Adminit (Fshihet gjatë printimit me klasën print:hidden) */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8 print:hidden">
         <h1 className="text-4xl font-black text-white tracking-tighter">Qendra e <span className="text-emerald-500">Komandës</span></h1>
-        <button 
-          onClick={() => setIsProductModalOpen(true)}
-          className="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-sm flex items-center justify-center gap-2 w-full sm:w-auto"
-        >
-          Shto Produkt
-        </button>
+        
+        <div className="flex gap-4 w-full sm:w-auto">
+          {/* BUTONI I RI PËR EXCEL */}
+          <button 
+            onClick={exportToExcel}
+            className="flex-1 sm:flex-none bg-slate-800 hover:bg-slate-700 text-emerald-400 font-black uppercase tracking-widest px-6 py-3 rounded-xl border border-slate-700 transition-all text-xs flex items-center justify-center gap-2"
+          >
+            📊 Shkarko Bilancin
+          </button>
+          
+          <button 
+            onClick={() => setIsProductModalOpen(true)}
+            className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 text-xs flex items-center justify-center gap-2"
+          >
+            Shto Produkt
+          </button>
+        </div>
       </div>
 
-      <div className="bg-slate-800/40 border border-slate-700/50 rounded-[2rem] p-6 mb-8 shadow-xl">
+      <div className="bg-slate-800/40 border border-slate-700/50 rounded-[2rem] p-6 mb-8 shadow-xl print:hidden">
         <div className="flex justify-between items-end mb-3">
           <div>
             <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Ecuria e këtij muaji</span>
@@ -127,7 +159,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-10 print:hidden">
         <div className="bg-emerald-500/10 p-5 sm:p-6 rounded-[2rem] border border-emerald-500/20 shadow-xl">
           <p className="text-emerald-400 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-1 sm:mb-2">Të Ardhurat</p>
           <p className="text-2xl sm:text-4xl font-black text-emerald-400">{totalRevenue.toLocaleString()} L</p>
@@ -147,7 +179,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 print:hidden">
         <div className="flex gap-4">
           <button onClick={() => setActiveTab('orders')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'orders' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>Porositë</button>
           <button onClick={() => setActiveTab('products')} className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'products' ? 'bg-emerald-500 text-slate-900 shadow-lg' : 'text-slate-500 border border-slate-800 hover:text-white'}`}>Produktet</button>
@@ -167,7 +199,7 @@ export default function AdminDashboard({ user }: { user: User }) {
         )}
       </div>
 
-      <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto shadow-2xl">
+      <div className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-x-auto shadow-2xl print:hidden">
         {activeTab === 'orders' ? (
           <table className="w-full text-left border-collapse min-w-[800px]">
             <thead>
@@ -195,14 +227,12 @@ export default function AdminDashboard({ user }: { user: User }) {
                     }`}>{order.status || 'Në Pritje'}</span>
                   </td>
                   <td className="p-6 text-right space-x-2">
-                    {/* BUTONI I RI PËR FATURËN ME FJALË */}
                     <button 
                       onClick={() => setSelectedInvoice(order)} 
                       className="px-4 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-lg border border-slate-700 hover:border-slate-500 transition-all text-[9px] font-black uppercase tracking-widest"
                     >
                       Shiko Faturën
                     </button>
-                    {/* BUTONI I FSHIRJES ME FJALË */}
                     <button 
                       onClick={() => setOrderToDelete(order._id)} 
                       className="px-4 py-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 hover:bg-rose-500 hover:text-white transition-all text-[9px] font-black uppercase tracking-widest"
@@ -254,57 +284,71 @@ export default function AdminDashboard({ user }: { user: User }) {
         )}
       </div>
 
-      {/* --- MODALI I FATURËS SË PLOTË (SHTUAR TANI) --- */}
+      {/* --- MODALI I FATURËS --- */}
       {selectedInvoice && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl relative my-8">
-            <button onClick={() => setSelectedInvoice(null)} className="absolute top-6 right-6 text-slate-400 hover:text-white">
+        // print:absolute print:inset-0 e bën që fatura të zërë gjithë letrën A4
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm overflow-y-auto print:absolute print:bg-white print:p-0">
+          <div className="bg-slate-900 border border-slate-700 rounded-[2rem] p-8 w-full max-w-2xl shadow-2xl relative my-8 print:border-none print:shadow-none print:bg-white print:text-black print:m-0 print:p-8">
+            
+            <button onClick={() => setSelectedInvoice(null)} className="absolute top-6 right-6 text-slate-400 hover:text-white print:hidden">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
             
-            <div className="border-b border-slate-800 pb-6 mb-6">
-              <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-1">E-Marketi</h2>
-              <p className="text-slate-400 text-xs font-bold uppercase tracking-widest">Fatura #{selectedInvoice._id.slice(-8).toUpperCase()}</p>
-              <p className="text-slate-500 text-[10px] mt-1">{new Date(selectedInvoice.createdAt).toLocaleString('sq-AL')}</p>
+            {/* Header i Faturës */}
+            <div className="border-b border-slate-800 print:border-gray-300 pb-6 mb-6 flex justify-between items-start">
+              <div>
+                <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-1 print:text-black print:bg-none">E-Marketi</h2>
+                <p className="text-slate-400 print:text-gray-500 text-xs font-bold uppercase tracking-widest">Fatura #{selectedInvoice._id.slice(-8).toUpperCase()}</p>
+                <p className="text-slate-500 print:text-gray-500 text-[10px] mt-1">{new Date(selectedInvoice.createdAt).toLocaleString('sq-AL')}</p>
+              </div>
+              
+              {/* BUTONI I PRINTIMIT */}
+              <button 
+                onClick={() => window.print()} 
+                className="print:hidden flex items-center gap-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl border border-slate-700 transition-all"
+              >
+                🖨️ Printo
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 bg-slate-800/30 p-6 rounded-2xl border border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 bg-slate-800/30 print:bg-gray-50 p-6 rounded-2xl border border-slate-800 print:border-gray-200">
               <div>
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Të dhënat e Klientit</h4>
-                <p className="text-white font-bold">{selectedInvoice.user?.name || "I panjohur"}</p>
-                <p className="text-emerald-400 font-medium text-sm mt-1">{selectedInvoice.shippingAddress?.phone}</p>
+                <h4 className="text-[10px] font-black text-slate-500 print:text-gray-500 uppercase tracking-widest mb-2">Të dhënat e Klientit</h4>
+                <p className="text-white print:text-black font-bold">{selectedInvoice.user?.name || "I panjohur"}</p>
+                <p className="text-emerald-400 print:text-black font-medium text-sm mt-1">{selectedInvoice.shippingAddress?.phone}</p>
               </div>
               <div>
-                <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Adresa e Dërgesës</h4>
-                <p className="text-slate-300 text-sm leading-relaxed">{selectedInvoice.shippingAddress?.address}</p>
-                <p className="text-slate-400 text-xs mt-1">{selectedInvoice.shippingAddress?.city}</p>
+                <h4 className="text-[10px] font-black text-slate-500 print:text-gray-500 uppercase tracking-widest mb-2">Adresa e Dërgesës</h4>
+                <p className="text-slate-300 print:text-black text-sm leading-relaxed">{selectedInvoice.shippingAddress?.address}</p>
+                <p className="text-slate-400 print:text-black text-xs mt-1">{selectedInvoice.shippingAddress?.city}</p>
               </div>
             </div>
 
-            <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Artikujt e Porositur</h4>
-            <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50 mb-8 max-h-60 overflow-y-auto custom-scrollbar">
-              <ul className="divide-y divide-slate-700/50">
+            <h4 className="text-[10px] font-black text-slate-500 print:text-gray-500 uppercase tracking-widest mb-4">Artikujt e Porositur</h4>
+            <div className="bg-slate-800/50 print:bg-white rounded-2xl p-4 border border-slate-700/50 print:border-gray-300 mb-8 max-h-60 overflow-y-auto custom-scrollbar print:max-h-none print:overflow-visible">
+              <ul className="divide-y divide-slate-700/50 print:divide-gray-200">
                 {selectedInvoice.orderItems.map((item: any, index: number) => (
                   <li key={index} className="py-3 flex justify-between items-center">
                     <div className="flex items-center gap-4">
-                      <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover border border-slate-700" />
+                      {/* Fshehim fotot në printim që të dalë e pastër bardh e zi */}
+                      <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover border border-slate-700 print:hidden" />
                       <div>
-                        <p className="text-white font-bold text-sm">{item.name}</p>
-                        <p className="text-slate-400 text-xs">Sasia: {item.qty}</p>
+                        <p className="text-white print:text-black font-bold text-sm">{item.name}</p>
+                        <p className="text-slate-400 print:text-gray-600 text-xs">Sasia: {item.qty}</p>
                       </div>
                     </div>
-                    <p className="text-emerald-400 font-black">{(item.price * item.qty).toLocaleString()} L</p>
+                    <p className="text-emerald-400 print:text-black font-black">{(item.price * item.qty).toLocaleString()} L</p>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="flex justify-between items-end border-t border-slate-800 pt-6 mb-8">
-              <span className="text-slate-400 font-bold uppercase tracking-widest text-xs">Totali për t'u paguar:</span>
-              <span className="text-3xl font-black text-white">{selectedInvoice.totalPrice.toLocaleString()} L</span>
+            <div className="flex justify-between items-end border-t border-slate-800 print:border-gray-300 pt-6 mb-8">
+              <span className="text-slate-400 print:text-gray-600 font-bold uppercase tracking-widest text-xs">Totali për t'u paguar:</span>
+              <span className="text-3xl font-black text-white print:text-black">{selectedInvoice.totalPrice.toLocaleString()} L</span>
             </div>
 
-            <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="bg-slate-800/30 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 print:hidden">
               <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ndrysho Statusin:</span>
               <div className="flex gap-2">
                 <button onClick={() => updateStatus(selectedInvoice._id, 'Porosia u mor')} className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest border transition-all ${selectedInvoice.status === 'Porosia u mor' ? 'bg-blue-500 text-white border-blue-500' : 'bg-blue-500/10 text-blue-400 border-blue-500/30 hover:bg-blue-500 hover:text-white'}`}>U Mor</button>
@@ -316,10 +360,11 @@ export default function AdminDashboard({ user }: { user: User }) {
         </div>
       )}
 
-      {/* MODALET E TJERA (Fshirja dhe Shtimi i produktit) */}
+      {/* Modalet e tjera (Fshirja / Shtimi) mbeten po njësoj, thjesht fshihen në printim */}
       {orderToDelete && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm print:hidden">
+          {/* Kodi i fshirjes mbetet i njëjtë */}
+          <div className="bg-slate-900 border border-slate-700/50 rounded-[2rem] p-8 w-full max-w-sm shadow-2xl text-center">
             <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Fshi {activeTab === 'orders' ? 'Porosinë' : 'Produktin'}</h3>
             <p className="text-slate-400 text-sm mb-8 font-medium">Ky veprim nuk mund të kthehet mbrapsht.</p>
             <div className="flex gap-4">
@@ -331,57 +376,59 @@ export default function AdminDashboard({ user }: { user: User }) {
       )}
 
       {isProductModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200 my-8">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-black text-white tracking-tight">Krijo Produkt</h3>
-              <button onClick={() => setIsProductModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-            
-            <form onSubmit={handleAddProduct} className="space-y-4">
-              <div>
-                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Emri i Produktit *</label>
-                <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="p.sh. Këmishë..." />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Çmimi *</label>
-                  <input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="1500" />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Çmimi i Vjetër</label>
-                  <input type="number" value={newProduct.oldPrice} onChange={e => setNewProduct({...newProduct, oldPrice: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="2000" />
-                </div>
-              </div>
+         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto print:hidden">
+           {/* Formular i shtimit të produktit mbetet 100% njëlloj */}
+           <div className="bg-slate-900 border border-emerald-500/30 rounded-[2rem] p-8 w-full max-w-md shadow-2xl my-8">
+             <div className="flex justify-between items-center mb-6">
+               <h3 className="text-2xl font-black text-white tracking-tight">Krijo Produkt</h3>
+               <button onClick={() => setIsProductModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+             </div>
+             
+             <form onSubmit={handleAddProduct} className="space-y-4">
+               <div>
+                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Emri i Produktit *</label>
+                 <input type="text" required value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="p.sh. Këmishë..." />
+               </div>
+               
+               <div className="grid grid-cols-2 gap-4">
+                 <div>
+                   <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Çmimi *</label>
+                   <input type="number" required value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="1500" />
+                 </div>
+                 <div>
+                   <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Çmimi i Vjetër</label>
+                   <input type="number" value={newProduct.oldPrice} onChange={e => setNewProduct({...newProduct, oldPrice: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="2000" />
+                 </div>
+               </div>
+ 
+               <div>
+                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Përshkrimi *</label>
+                 <textarea required value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500 min-h-[80px]" placeholder="Përshkrimi..." />
+               </div>
+ 
+               <div>
+                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Kategoria *</label>
+                 <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="Veshje, Bio..." />
+               </div>
+ 
+               <div>
+                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Etiketa (Badge)</label>
+                 <input type="text" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="E Re, Ekskluzive..." />
+               </div>
+ 
+               <div>
+                 <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Linku i Fotos (URL) *</label>
+                 <input type="url" required value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="https://..." />
+               </div>
+ 
+               <button type="submit" className="w-full mt-6 py-4 bg-emerald-500 text-slate-900 font-black rounded-xl uppercase tracking-widest active:scale-95 shadow-lg shadow-emerald-500/20">
+                 Ruaj Produktin
+               </button>
+             </form>
+           </div>
+         </div>
+       )}
 
-              <div>
-                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Përshkrimi *</label>
-                <textarea required value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500 min-h-[80px]" placeholder="Përshkrimi..." />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Kategoria *</label>
-                <input type="text" required value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="Veshje, Bio..." />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Etiketa (Badge)</label>
-                <input type="text" value={newProduct.badge} onChange={e => setNewProduct({...newProduct, badge: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="E Re, Ekskluzive..." />
-              </div>
-
-              <div>
-                <label className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Linku i Fotos (URL) *</label>
-                <input type="url" required value={newProduct.image} onChange={e => setNewProduct({...newProduct, image: e.target.value})} className="w-full mt-1 p-3 bg-slate-800 border border-slate-700 rounded-xl text-white outline-none focus:border-emerald-500" placeholder="https://..." />
-              </div>
-
-              <button type="submit" className="w-full mt-6 py-4 bg-emerald-500 text-slate-900 font-black rounded-xl uppercase tracking-widest active:scale-95 shadow-lg shadow-emerald-500/20">
-                Ruaj Produktin
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
