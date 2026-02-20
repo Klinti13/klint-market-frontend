@@ -11,12 +11,12 @@ interface CartProps {
   onClearCart: () => void;
   onUpdatePoints: (points: number) => void;
   onOpenAuth: () => void; 
+  onUpdateUser: (fields: Partial<User>) => void; // SHTUAR TANI
 }
 
-export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, onUpdatePoints, onOpenAuth }: CartProps) {
+export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, onUpdatePoints, onOpenAuth, onUpdateUser }: CartProps) {
   const navigate = useNavigate();
   
-  // MAGJIA 1: Marrim adresën automatikisht nga profili i userit, jo më bosh ('')
   const [address, setAddress] = useState(user?.address || '');
   const [city, setCity] = useState(user?.city || 'Elbasan'); 
   const [phone, setPhone] = useState(user?.phone || '');
@@ -29,7 +29,6 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [deductedPoints, setDeductedPoints] = useState(0); 
 
-  // Përditëso adresën nëse logimi ndodh mbasi faqja është ngarkuar
   useEffect(() => {
     if (user.isLoggedIn) {
       if (user.address) setAddress(user.address);
@@ -39,7 +38,6 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
   }, [user]);
 
   const subtotal = items.reduce((acc, item) => acc + (item.price * item.qty), 0);
-  
   const discountPercent = useVipCard ? 0.10 : 0;
   const discountAmount = subtotal * discountPercent;
   const totalPrice = subtotal - discountAmount;
@@ -70,18 +68,15 @@ export default function Cart({ items, user, onUpdateQty, onRemove, onClearCart, 
         useVipPoints: useVipCard
       };
 
-      // 1. Krijojmë porosinë si zakonisht
       const { data } = await axios.post(`${import.meta.env.VITE_API_URL}/api/orders`, orderData, config);      
       
-      // MAGJIA 2: Në heshtje, i themi serverit të ruajë këtë adresë te profili i klientit
-      // Kështu herën tjetër e gjen gati!
+      // KËTU ËSHTË ZGJIDHJA: Nëse klienti shkruan një adresë të re, ruaje dhe përditëso gjithë faqen.
       if (address !== user.address || phone !== user.phone) {
           try {
-             await axios.put(`${import.meta.env.VITE_API_URL}/api/users/profile`, { address, city, phone }, config);
-             // Kujdes: Ne nuk e prekim local storage këtu direkt, por herën tjetër që 
-             // klienti logohet ose blen, ai i ka gati të dhënat.
+             const { data: updatedProfile } = await axios.put(`${import.meta.env.VITE_API_URL}/api/users/profile`, { address, city, phone }, config);
+             onUpdateUser({ address: updatedProfile.address, city: updatedProfile.city, phone: updatedProfile.phone });
           } catch (profileErr) {
-             console.error("Nuk arritëm të ruanim adresën për herë tjetër, por porosia kaloi!");
+             console.error("Gabim në ruajtjen e profilit", profileErr);
           }
       }
 

@@ -47,6 +47,11 @@ function App() {
     setUser(prev => ({ ...prev, points: newPoints }));
   };
 
+  // URDHRI I RI: Përditëson të dhënat e klientit (si adresa/telefoni) pa bërë logout
+  const handleUpdateUser = (updatedFields: Partial<User>) => {
+    setUser(prev => ({ ...prev, ...updatedFields }));
+  };
+
   async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -102,10 +107,8 @@ function App() {
 
   return (
     <Router>
-      {/* SHTUAM print:bg-white që letra të dalë e bardhë e pastër */}
       <div className="min-h-screen bg-[#0b1120] text-slate-200 font-sans selection:bg-emerald-500/30 pb-24 sm:pb-0 relative print:bg-white">
         
-        {/* SHTUAM print:hidden që Navbar mos të printohet */}
         <div className="print:hidden">
           <Navbar 
             cartCount={totalCartCount} 
@@ -129,12 +132,12 @@ function App() {
               onClearCart={() => setCartItems([])}
               onUpdatePoints={handleUpdatePoints}
               onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }}
+              onUpdateUser={handleUpdateUser} // LIDHJA E RE KËTU
             />
           } />
           <Route path="/profile" element={<Profile user={user} />} />
         </Routes>
 
-        {/* SHTUAM print:hidden që Menuja e Celularit mos të printohet */}
         <div className="print:hidden">
           <MobileNav 
             cartCount={totalCartCount} 
@@ -173,7 +176,6 @@ function App() {
           </div>
         )}
 
-        {/* --- FOOTER LUKSOZ (SHTUAR print:hidden) --- */}
         <footer className="bg-slate-900 border-t border-slate-800 py-12 mt-10 hidden sm:block print:hidden">
           <div className="max-w-7xl mx-auto px-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
