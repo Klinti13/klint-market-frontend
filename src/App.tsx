@@ -55,10 +55,20 @@ async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     
-    // 🛑 DRYNI I RI: Ndaloje direkt nëse ka më pak se 8 karaktere
-    if (password.length < 8) {
-      setError('❌ Fjalëkalimi duhet të ketë të paktën 8 karaktere!');
-      return;
+    // 🛑 DRYNI I FRONTEND-IT
+    if (authMode === 'signup') {
+      if (password.length < 8) {
+        setError('❌ Fjalëkalimi duhet të ketë të paktën 8 karaktere!');
+        return;
+      }
+      
+      const hasLetter = /[a-zA-Z]/.test(password);
+      const hasNumber = /\d/.test(password);
+      
+      if (!hasLetter || !hasNumber) {
+        setError('❌ Fjalëkalimi duhet të ketë të paktën 1 shkronjë dhe 1 numër!');
+        return;
+      }
     }
 
     try {
