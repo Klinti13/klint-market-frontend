@@ -29,7 +29,7 @@ function App() {
   // 🛑 SISTEMI I RI I NGJYRAVE (Truri)
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("emarketi_theme");
-    return savedTheme ? savedTheme === 'dark' : true; // Default do e lëmë Natë
+    return savedTheme ? savedTheme === 'dark' : false; // Default do e lëmë Natë
   });
 
   useEffect(() => {
