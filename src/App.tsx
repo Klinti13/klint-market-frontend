@@ -26,6 +26,22 @@ function App() {
       : { name: '', isLoggedIn: false, points: 0, isAdmin: false };
   });
 
+  // 🛑 SISTEMI I RI I NGJYRAVE (Truri)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem("emarketi_theme");
+    return savedTheme ? savedTheme === 'dark' : true; // Default do e lëmë Natë
+  });
+
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('emarketi_theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('emarketi_theme', 'light');
+    }
+  }, [isDarkMode]);
+
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [name, setName] = useState('');
@@ -51,11 +67,10 @@ function App() {
     setUser(prev => ({ ...prev, ...updatedFields }));
   };
 
-async function handleAuthSubmit(e: React.FormEvent) {
+  async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     
-    // 🛑 DRYNI I FRONTEND-IT
     if (authMode === 'signup') {
       if (password.length < 8) {
         setError('❌ Fjalëkalimi duhet të ketë të paktën 8 karaktere!');
@@ -114,10 +129,21 @@ async function handleAuthSubmit(e: React.FormEvent) {
 
   return (
     <Router>
-      <div className="min-h-screen bg-[#0b1120] text-slate-200 font-sans selection:bg-emerald-500/30 pb-24 sm:pb-0 relative print:bg-white">
+      {/* 🛑 APLIKIMI I NGJYRAVE PËR TË GJITHË FAQEN (Day/Night) */}
+      <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0b1120] dark:text-slate-200 font-sans selection:bg-emerald-500/30 pb-24 sm:pb-0 relative print:bg-white transition-colors duration-300">
         
         <div className="print:hidden">
-          <Navbar cartCount={totalCartCount} user={user} onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} onLogout={handleLogout} searchTerm={searchTerm} onSearchChange={setSearchTerm} />
+          {/* I KALUAM ÇELËSIN NAVBARIT */}
+          <Navbar 
+            cartCount={totalCartCount} 
+            user={user} 
+            onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); setError(''); }} 
+            onLogout={handleLogout} 
+            searchTerm={searchTerm} 
+            onSearchChange={setSearchTerm} 
+            isDarkMode={isDarkMode}
+            toggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+          />
         </div>
         
         <Routes>
@@ -125,8 +151,6 @@ async function handleAuthSubmit(e: React.FormEvent) {
           <Route path="/admin" element={<AdminDashboard user={user} />} />
           <Route path="/about" element={<About />} />
           <Route path="/cart" element={<Cart items={cartItems} user={user} onUpdateQty={handleUpdateQty} onRemove={handleRemoveFromCart} onClearCart={() => setCartItems([])} onUpdatePoints={handleUpdatePoints} onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} onUpdateUser={handleUpdateUser} />} />
-          
-          {/* 👇 KËTU ËSHTË NDRYSHIMI: I dhamë Profilit fuqinë të përditësojë të dhënat */}
           <Route path="/profile" element={<Profile user={user} onUpdateUser={handleUpdateUser} />} />
         </Routes>
 
@@ -134,28 +158,29 @@ async function handleAuthSubmit(e: React.FormEvent) {
           <MobileNav cartCount={totalCartCount} user={user} onOpenAuth={() => { setIsAuthOpen(true); setAuthMode('login'); }} onLogout={handleLogout} />
         </div>
 
+        {/* DRITARJA E LOGIN (Day/Night) */}
         {isAuthOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm print:hidden">
-            <div className="bg-slate-900 border border-slate-700/50 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200">
-              <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm print:hidden transition-colors duration-300">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200 transition-colors duration-300">
+              <button onClick={() => setIsAuthOpen(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-black text-white mb-2">{authMode === 'login' ? 'Mirësevini' : 'Krijo Llogari'}</h2>
-                {error && <p className="text-rose-400 text-sm font-bold bg-rose-500/10 py-2 rounded-lg mb-2">{error}</p>}
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">{authMode === 'login' ? 'Mirësevini' : 'Krijo Llogari'}</h2>
+                {error && <p className="text-rose-600 dark:text-rose-400 text-sm font-bold bg-rose-100 dark:bg-rose-500/10 py-2 rounded-lg mb-2">{error}</p>}
               </div>
               <form onSubmit={handleAuthSubmit} className="space-y-5">
                 {authMode === 'signup' && (
-                  <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white" placeholder="Emri i Plotë" />
+                  <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="Emri i Plotë" />
                 )}
-                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white" placeholder="Email" />
-                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-slate-800 border border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-white" placeholder="••••••••" />
+                <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="Email" />
+                <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="••••••••" />
                 <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20">
                   {authMode === 'login' ? 'Hyr në Llogari' : 'Regjistrohu Tani'}
                 </button>
               </form>
-              <div className="mt-8 text-center border-t border-slate-800 pt-6">
-                <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(''); }} className="text-slate-400 hover:text-emerald-400 text-sm font-medium">
+              <div className="mt-8 text-center border-t border-slate-200 dark:border-slate-800 pt-6 transition-colors duration-300">
+                <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(''); }} className="text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 text-sm font-bold">
                   {authMode === 'login' ? "Nuk keni llogari? Regjistrohu" : "Keni llogari? Hyr këtu"}
                 </button>
               </div>
@@ -163,16 +188,16 @@ async function handleAuthSubmit(e: React.FormEvent) {
           </div>
         )}
 
-        <footer className="bg-slate-900 border-t border-slate-800 py-12 mt-10 hidden sm:block print:hidden">
+        <footer className="bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 py-12 mt-10 hidden sm:block print:hidden transition-colors duration-300">
           <div className="max-w-7xl mx-auto px-6 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
-              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-500 tracking-tighter mb-2">E-Marketi</h2>
+              <h2 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500 tracking-tighter mb-2">E-Marketi</h2>
               <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">© {new Date().getFullYear()} Të gjitha të drejtat e rezervuara.</p>
             </div>
-            <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-400">
-              <a href="#" className="hover:text-emerald-400 transition-colors">Privatësia</a>
-              <a href="#" className="hover:text-emerald-400 transition-colors">Kushtet</a>
-              <a href="#" className="hover:text-emerald-400 transition-colors">Kontakti</a>
+            <div className="flex gap-8 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              <a href="#" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">Privatësia</a>
+              <a href="#" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">Kushtet</a>
+              <a href="#" className="hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">Kontakti</a>
             </div>
           </div>
         </footer>
