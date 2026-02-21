@@ -51,10 +51,16 @@ function App() {
     setUser(prev => ({ ...prev, ...updatedFields }));
   };
 
-  async function handleAuthSubmit(e: React.FormEvent) {
+async function handleAuthSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     
+    // 🛑 DRYNI I RI: Ndaloje direkt nëse ka më pak se 8 karaktere
+    if (password.length < 8) {
+      setError('❌ Fjalëkalimi duhet të ketë të paktën 8 karaktere!');
+      return;
+    }
+
     try {
       const endpoint = authMode === 'login' ? 'login' : 'register';
       const payload = authMode === 'login' ? { email, password } : { name, email, password };
