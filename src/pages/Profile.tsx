@@ -16,6 +16,9 @@ export default function Profile({ user, onUpdateUser }: ProfileProps) {
   const [address, setAddress] = useState(user.address || '');
   const [phone, setPhone] = useState(user.phone || '');
   const [isSaving, setIsSaving] = useState(false);
+  
+  // 🛑 SHTUAR TANI: Mban mend cilën faturë ka klikuar klienti për t'ia hapur
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   useEffect(() => {
     setAddress(user.address || '');
@@ -48,7 +51,6 @@ export default function Profile({ user, onUpdateUser }: ProfileProps) {
       onUpdateUser({ address: data.address, phone: data.phone, city: data.city });
       setIsEditing(false);
     } catch (err: any) {
-      // 🕵️ TRUKI KËTU: E detyrojmë të na tregojë errorin e vërtetë që vjen nga Serveri!
       const serverError = err.response?.data?.error || err.response?.data?.message || err.message;
       alert(`❌ SERVERI THOTË: ${serverError}`);
     } finally {
@@ -78,7 +80,7 @@ export default function Profile({ user, onUpdateUser }: ProfileProps) {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-24 text-slate-200">
+    <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-24 text-slate-200 relative">
       <div className="mb-12">
         <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-8">Llogaria <span className="text-emerald-500">Ime</span></h1>
         
@@ -172,15 +174,106 @@ export default function Profile({ user, onUpdateUser }: ProfileProps) {
       ) : (
         <div className="grid gap-6">
           {orders.map((order: any) => (
-            <div key={order._id} className="bg-slate-800/40 border border-slate-700/50 p-6 sm:p-8 rounded-[2rem] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-0 transition-all hover:bg-slate-800/60">
+            <div key={order._id} className="bg-slate-800/40 border border-slate-700/50 p-6 sm:p-8 rounded-[2rem] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 sm:gap-0 transition-all hover:bg-slate-800/60 shadow-lg">
+              
               <div className="space-y-2">
                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">Kodi Faturës: #{order._id.slice(-8).toUpperCase()}</p>
                 <p className="text-2xl sm:text-3xl font-black text-white">{order.totalPrice.toLocaleString()} L</p>
-                <p className="text-slate-400 text-xs font-medium">{new Date(order.createdAt).toLocaleDateString('sq-AL')}</p>
+                <p className="text-slate-400 text-xs font-medium">{new Date(order.createdAt).toLocaleDateString('sq-AL')} • {order.orderItems.length} produkte</p>
               </div>
-              {getStatusBadge(order.status)}
+              
+              <div className="flex flex-col items-end gap-4 w-full sm:w-auto">
+                {getStatusBadge(order.status)}
+                
+                {/* Butoni i ri që hap Faturën */}
+                <button 
+                  onClick={() => setSelectedOrder(order)}
+                  className="px-5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-[10px] font-black text-white uppercase tracking-widest transition-all shadow-md active:scale-95 w-full sm:w-auto text-center flex items-center justify-center gap-2"
+                >
+                  👁️ Shiko Faturën
+                </button>
+              </div>
+
             </div>
           ))}
+        </div>
+      )}
+
+      {/* DRITARIA E FATURËS (MODAL) */}
+      {selectedOrder && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700 rounded-[2rem] w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            
+            {/* Header i Faturës */}
+            <div className="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+              <div>
+                <h3 className="text-xl font-black text-white tracking-tight uppercase">Fatura Detajuar</h3>
+                <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-1">
+                  Kodi: #{selectedOrder._id.slice(-8).toUpperCase()}
+                </p>
+              </div>
+              <button 
+                onClick={() => setSelectedOrder(null)} 
+                className="w-10 h-10 bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 rounded-full flex items-center justify-center transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Përmbajtja e Faturës */}
+            <div className="p-6 overflow-y-auto space-y-8 flex-1">
+              
+              {/* Të dhënat e Dërgesës & Statusi */}
+              <div className="flex flex-col sm:flex-row gap-6 justify-between">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Të dhënat e dërgesës</span>
+                  <p className="text-white font-bold">{user.name}</p>
+                  <p className="text-slate-400 text-sm">{selectedOrder.shippingAddress.address}</p>
+                  <p className="text-slate-400 text-sm">{selectedOrder.shippingAddress.city}</p>
+                  <p className="text-slate-400 text-sm">Tel: {selectedOrder.shippingAddress.phone}</p>
+                </div>
+                <div className="flex flex-col items-start sm:items-end">
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-2">Statusi Aktual</span>
+                  {getStatusBadge(selectedOrder.status)}
+                </div>
+              </div>
+
+              {/* Lista e Produkteve */}
+              <div>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4 border-b border-slate-800 pb-2">Produktet e Blera</span>
+                <ul className="space-y-4">
+                  {selectedOrder.orderItems.map((item: any, index: number) => (
+                    <li key={index} className="flex items-center gap-4 bg-slate-800/30 p-3 rounded-2xl border border-slate-800/50">
+                      <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-xl border border-slate-700" />
+                      <div className="flex-1">
+                        <p className="text-sm font-bold text-white line-clamp-1">{item.name}</p>
+                        <p className="text-xs text-slate-400 mt-1">{item.qty} copë x {item.price.toLocaleString()} L</p>
+                      </div>
+                      <div className="text-right pr-2">
+                        <p className="text-emerald-400 font-black">{(item.qty * item.price).toLocaleString()} L</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+            </div>
+
+            {/* Fundi (Totali) */}
+            <div className="p-6 border-t border-slate-800 bg-slate-800/50">
+               <div className="flex justify-between items-end">
+                 <div>
+                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Data e blerjes</span>
+                   <p className="text-sm font-bold text-slate-300">{new Date(selectedOrder.createdAt).toLocaleDateString('sq-AL')} {new Date(selectedOrder.createdAt).toLocaleTimeString('sq-AL', {hour: '2-digit', minute:'2-digit'})}</p>
+                 </div>
+                 <div className="text-right">
+                   <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-1">Totali Final</span>
+                   <p className="text-3xl font-black text-white">{selectedOrder.totalPrice.toLocaleString()} L</p>
+                 </div>
+               </div>
+            </div>
+
+          </div>
         </div>
       )}
     </div>
