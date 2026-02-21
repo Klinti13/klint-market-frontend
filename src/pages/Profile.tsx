@@ -47,8 +47,10 @@ export default function Profile({ user, onUpdateUser }: ProfileProps) {
       const { data } = await axios.put(`${API_URL}/api/users/profile`, { address, phone, city: 'Elbasan' }, config);
       onUpdateUser({ address: data.address, phone: data.phone, city: data.city });
       setIsEditing(false);
-    } catch (err) {
-      alert("❌ Gabim në ruajtjen e të dhënave në server.");
+    } catch (err: any) {
+      // 🕵️ TRUKI KËTU: E detyrojmë të na tregojë errorin e vërtetë që vjen nga Serveri!
+      const serverError = err.response?.data?.error || err.response?.data?.message || err.message;
+      alert(`❌ SERVERI THOTË: ${serverError}`);
     } finally {
       setIsSaving(false);
     }
