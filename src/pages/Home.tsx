@@ -53,7 +53,6 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
   const offers = useMemo(() => filteredProducts.filter(p => p.oldPrice), [filteredProducts]);
   const regularProducts = useMemo(() => filteredProducts.filter(p => !p.oldPrice), [filteredProducts]);
 
-  // LOGJIKA E "ZBULIMEVE TË REJA" (Zgjedh 4 produkte rastësore)
   const suggestedProducts = useMemo(() => {
     if (regularProducts.length === 0) return [];
     const shuffled = [...regularProducts].sort(() => 0.5 - Math.random());
@@ -68,18 +67,17 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
     }, {} as Record<string, Product[]>);
   }, [regularProducts]);
 
-  // SKELETON LOADER - Ngarkim Premium në vend të tekstit të thjeshtë
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20">
-        <div className="w-full h-72 sm:h-96 bg-slate-800/40 animate-pulse rounded-[2rem] mb-16 border border-slate-700/50"></div>
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20 transition-colors duration-300">
+        <div className="w-full h-72 sm:h-96 bg-slate-200 dark:bg-slate-800/40 animate-pulse rounded-[2rem] mb-16 border border-slate-300 dark:border-slate-700/50"></div>
         <div className="flex gap-4 mb-8">
-          <div className="w-48 h-8 bg-slate-800/40 animate-pulse rounded-lg"></div>
-          <div className="h-8 bg-slate-800/20 animate-pulse flex-grow rounded-lg hidden sm:block"></div>
+          <div className="w-48 h-8 bg-slate-200 dark:bg-slate-800/40 animate-pulse rounded-lg"></div>
+          <div className="h-8 bg-slate-100 dark:bg-slate-800/20 animate-pulse flex-grow rounded-lg hidden sm:block"></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-80 bg-slate-800/30 animate-pulse rounded-[1.5rem] border border-slate-800"></div>
+            <div key={i} className="h-80 bg-slate-200 dark:bg-slate-800/30 animate-pulse rounded-[1.5rem] border border-slate-300 dark:border-slate-800"></div>
           ))}
         </div>
       </div>
@@ -87,43 +85,43 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20 relative">
+    <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-20 relative transition-colors duration-300">
       
       {toastMessage && (
         <div className="fixed top-24 right-4 z-50 animate-in slide-in-from-right fade-in duration-300">
-          <div className="bg-emerald-500/90 backdrop-blur-sm text-slate-900 font-black px-6 py-4 rounded-2xl shadow-2xl shadow-emerald-500/20 flex items-center gap-3">
+          <div className="bg-emerald-500/90 backdrop-blur-sm text-white dark:text-slate-900 font-black px-6 py-4 rounded-2xl shadow-2xl shadow-emerald-500/20 flex items-center gap-3">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span className="uppercase tracking-widest text-xs">{toastMessage}</span>
           </div>
         </div>
       )}
 
+      {/* Banneri Kryesor - E mbajmë gjithmonë Premium Dark se duket si Billboard luksoz */}
       {!searchTerm && (
-        <div className="relative w-full h-72 sm:h-96 rounded-[2rem] overflow-hidden mb-16 shadow-2xl shadow-emerald-500/10 group">
+        <div className="relative w-full h-72 sm:h-96 rounded-[2rem] overflow-hidden mb-16 shadow-2xl shadow-emerald-500/10 dark:shadow-emerald-500/5 group">
           <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=1600&q=80" alt="Supermarket" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent"></div>
           <div className="absolute inset-0 p-8 sm:p-16 flex flex-col justify-center max-w-2xl">
-            <span className="bg-emerald-500 text-slate-900 font-black uppercase tracking-widest text-xs px-4 py-1.5 rounded-full w-max mb-6">Ekskluzive</span>
+            <span className="bg-emerald-500 text-slate-900 font-black uppercase tracking-widest text-xs px-4 py-1.5 rounded-full w-max mb-6 shadow-lg">Ekskluzive</span>
             <h1 className="text-4xl sm:text-6xl font-black text-white mb-6 leading-[1.1]">Zbuloni Ofertat e <br/><span className="text-emerald-400">Produkteve 100% Bio</span></h1>
-            <p className="text-slate-300 text-lg sm:text-xl font-medium">Cilësi e garantuar. Zgjidhni më të mirën për familjen tuaj.</p>
+            <p className="text-slate-200 text-lg sm:text-xl font-medium">Cilësi e garantuar. Zgjidhni më të mirën për familjen tuaj.</p>
           </div>
         </div>
       )}
 
       {searchTerm && filteredProducts.length === 0 && (
         <div className="text-center py-20">
-          <p className="text-slate-400 text-xl font-bold">Nuk u gjet asnjë produkt për "{searchTerm}"</p>
+          <p className="text-slate-500 dark:text-slate-400 text-xl font-bold">Nuk u gjet asnjë produkt për "{searchTerm}"</p>
         </div>
       )}
 
-      {/* SEKSIONI I ZBULIMEVE TË REJA (Del vetëm kur s'po kërkon gjë dhe s'ka oferta lart) */}
       {!searchTerm && suggestedProducts.length > 0 && offers.length === 0 && (
         <div className="mb-20">
           <div className="flex items-center gap-4 mb-8">
-            <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
               <span className="text-xl">✨</span> Zbulime të Reja
             </h2>
-            <div className="h-px bg-gradient-to-r from-slate-700 to-transparent flex-grow"></div>
+            <div className="h-px bg-gradient-to-r from-slate-300 dark:from-slate-700 to-transparent flex-grow"></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {suggestedProducts.map(product => (
@@ -136,11 +134,11 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
       {offers.length > 0 && (
         <div className="mb-20">
           <div className="flex items-center gap-4 mb-8">
-            <h2 className="text-3xl font-black text-rose-400 uppercase tracking-tight flex items-center gap-3">
+            <h2 className="text-3xl font-black text-rose-600 dark:text-rose-400 uppercase tracking-tight flex items-center gap-3">
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
               Ofertat e Ditës
             </h2>
-            <div className="h-px bg-gradient-to-r from-rose-500/50 to-transparent flex-grow"></div>
+            <div className="h-px bg-gradient-to-r from-rose-200 dark:from-rose-500/50 to-transparent flex-grow"></div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {offers.map(product => (
@@ -154,8 +152,8 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
         {Object.entries(groupedProducts).map(([category, products]) => (
           <div key={category}>
             <div className="flex items-center gap-4 mb-8">
-              <h2 className="text-2xl font-bold text-slate-100 uppercase tracking-wider">{category}</h2>
-              <div className="h-px bg-slate-800 flex-grow"></div>
+              <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">{category}</h2>
+              <div className="h-px bg-slate-200 dark:bg-slate-800 flex-grow"></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {products.map(product => (
@@ -171,35 +169,35 @@ export default function Home({ onAddToCart, searchTerm = '' }: HomeProps) {
 
 function ProductCard({ product, onAddToCart, isOffer = false }: { product: Product, onAddToCart: (p: Product) => void, isOffer?: boolean }) {
   return (
-    <div className={`bg-slate-800/40 rounded-[1.5rem] overflow-hidden hover:bg-slate-800/80 transition-all duration-300 group flex flex-col relative border ${isOffer ? 'border-rose-500/30 hover:border-rose-400' : 'border-slate-700/50 hover:border-emerald-500/50'} hover:shadow-2xl`}>
+    <div className={`bg-white dark:bg-slate-800/40 rounded-[1.5rem] overflow-hidden hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-all duration-300 group flex flex-col relative border ${isOffer ? 'border-rose-200 dark:border-rose-500/30 hover:border-rose-400' : 'border-slate-200 dark:border-slate-700/50 hover:border-emerald-500 dark:hover:border-emerald-500/50'} shadow-sm hover:shadow-2xl`}>
       
       {product.badge && (
-        <div className={`absolute top-4 left-4 z-10 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg ${isOffer ? 'bg-rose-500' : 'bg-emerald-500'}`}>
+        <div className={`absolute top-4 left-4 z-10 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-md ${isOffer ? 'bg-rose-500' : 'bg-emerald-500'}`}>
           {product.badge}
         </div>
       )}
 
       <div className="h-56 overflow-hidden relative p-4 pb-0">
-        <div className="w-full h-full rounded-2xl overflow-hidden relative">
+        <div className="w-full h-full rounded-2xl overflow-hidden relative shadow-inner bg-slate-100 dark:bg-transparent">
           <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-slate-900 via-transparent to-transparent opacity-90 dark:opacity-80"></div>
         </div>
       </div>
       
       <div className="p-6 flex flex-col flex-grow justify-between gap-6">
         <div>
-          <h3 className="text-lg font-bold text-slate-100 leading-tight mb-3 line-clamp-2">{product.name}</h3>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 leading-tight mb-3 line-clamp-2">{product.name}</h3>
           <div className="flex items-baseline gap-3">
-            <span className={`text-2xl font-black ${isOffer ? 'text-rose-400' : 'text-emerald-400'}`}>{product.price} L</span>
+            <span className={`text-2xl font-black ${isOffer ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{product.price} L</span>
             {product.oldPrice && (
-              <span className="text-sm font-semibold text-slate-500 line-through">{product.oldPrice} L</span>
+              <span className="text-sm font-semibold text-slate-400 dark:text-slate-500 line-through">{product.oldPrice} L</span>
             )}
           </div>
         </div>
         
         <button
           onClick={() => onAddToCart(product)}
-          className={`w-full text-white font-bold py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 border ${isOffer ? 'bg-rose-500/10 hover:bg-rose-500 border-rose-500/20 hover:border-rose-500 text-rose-400 hover:text-white' : 'bg-emerald-500/10 hover:bg-emerald-500 border-emerald-500/20 hover:border-emerald-500 text-emerald-400 hover:text-white'}`}
+          className={`w-full font-bold py-3.5 rounded-xl transition-all duration-300 flex items-center justify-center gap-2 active:scale-95 border ${isOffer ? 'bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-500 dark:hover:bg-rose-500 border-rose-200 dark:border-rose-500/20 hover:border-rose-500 text-rose-600 dark:text-rose-400 hover:text-white dark:hover:text-white' : 'bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-500 dark:hover:bg-emerald-500 border-emerald-200 dark:border-emerald-500/20 hover:border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:text-white dark:hover:text-white'}`}
         >
           Shto në Shportë
         </button>
