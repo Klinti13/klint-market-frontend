@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 export default function About() {
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 pb-24 transition-colors duration-300">
-      {/* HEADER ME FOTO DHE GRADIENT (Ky mbetet gjithmonë i Errët për efekt Premium) */}
       <div className="relative w-full h-80 sm:h-[30rem] rounded-[2.5rem] overflow-hidden mb-16 shadow-2xl border border-slate-200 dark:border-slate-700/50 transition-colors">
         <img 
           src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?q=80&w=1600&auto=format&fit=crop" 
@@ -19,7 +18,6 @@ export default function About() {
         </div>
       </div>
 
-      {/* HISTORIA DHE VIZIONI */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 sm:gap-20 items-center">
         <div className="space-y-8">
           <p className="text-slate-700 dark:text-slate-300 text-lg sm:text-xl leading-relaxed font-medium transition-colors">
