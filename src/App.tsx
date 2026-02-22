@@ -41,15 +41,15 @@ function App() {
     }
   }, [isDarkMode]);
 
-  // 🛡️ SHTUAM GJENDJEN "verify" DHE KODIN OTP
+  // 🛡️ SHTUAM 2 GJENDJE TË REJA: "forgot" dhe "reset"
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'verify'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'verify' | 'forgot' | 'reset'>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState(''); // Kodi 6-shifror
+  const [otp, setOtp] = useState(''); 
   const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState(''); // Për t'i thënë që "Emaili u nis!"
+  const [successMsg, setSuccessMsg] = useState(''); 
   
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -99,19 +99,18 @@ function App() {
 
       try {
         const { data } = await axios.post(`${API_URL}/api/users/register`, { name, email, password });
-        setSuccessMsg(data.message); // Shfaqim "Një kod u nis në email..."
-        setAuthMode('verify');       // Kalojmë dritaren te kërkimi i kodit
+        setSuccessMsg(data.message); 
+        setAuthMode('verify');       
       } catch (err: any) {
         setError(err.response?.data?.message || 'Ndodhi një gabim gjatë regjistrimit.');
       }
       return;
     }
 
-    // 2. VERIFIKIMI I KODIT OTP
+    // 2. VERIFIKIMI I KODIT OTP (Regjistrimi)
     if (authMode === 'verify') {
       try {
         const { data } = await axios.post(`${API_URL}/api/users/verify-otp`, { email, otp });
-        // Sapo verifikohet, e logojmë direkt brenda
         setUser({ ...data, isLoggedIn: true, points: data.points || 0 });      
         resetAuthStates();
       } catch (err: any) {
@@ -128,6 +127,37 @@ function App() {
         resetAuthStates();
       } catch (err: any) {
         setError(err.response?.data?.message || '❌ Email ose fjalëkalim i gabuar.');
+      }
+      return;
+    }
+
+    // 4. KËRKESA PËR FORGOT PASSWORD (Dërgimi i Kodit)
+    if (authMode === 'forgot') {
+      try {
+        const { data } = await axios.post(`${API_URL}/api/users/forgot-password`, { email });
+        setSuccessMsg(data.message);
+        setAuthMode('reset'); // Kalojmë te dritarja ku futet kodi dhe fjalëkalimi i ri
+      } catch (err: any) {
+        setError(err.response?.data?.message || '❌ Gabim në dërgimin e emailit.');
+      }
+      return;
+    }
+
+    // 5. RUAJTJA E FJALËKALIMIT TË RI (Reset)
+    if (authMode === 'reset') {
+      if (password.length < 8 || !/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+        setError('❌ Fjalëkalimi i ri duhet të ketë 8 karaktere, 1 shkronjë dhe 1 numër!');
+        return;
+      }
+      try {
+        // Përdorim gjendjen "password" si "newPassword" për Backend-in
+        const { data } = await axios.post(`${API_URL}/api/users/reset-password`, { email, otp, newPassword: password });
+        setSuccessMsg(data.message);
+        setAuthMode('login'); // E kthejmë te login që të futet me të rejat
+        setPassword('');
+        setOtp('');
+      } catch (err: any) {
+        setError(err.response?.data?.message || '❌ Kodi është i gabuar ose ka skaduar.');
       }
       return;
     }
@@ -189,7 +219,7 @@ function App() {
           <MobileNav cartCount={totalCartCount} user={user} onOpenAuth={() => { resetAuthStates(); setIsAuthOpen(true); setAuthMode('login'); }} onLogout={handleLogout} />
         </div>
 
-        {/* MODAL I HYRJES / REGJISTRIMIT / VERIFIKIMIT */}
+        {/* MODAL I HYRJES / REGJISTRIMIT / VERIFIKIMIT / FORGOT PASSWORD */}
         {isAuthOpen && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 dark:bg-black/70 backdrop-blur-sm print:hidden transition-colors duration-300">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/50 rounded-[2.5rem] p-8 w-full max-w-md shadow-2xl relative animate-in fade-in zoom-in duration-200 transition-colors duration-300">
@@ -199,7 +229,11 @@ function App() {
               
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2">
-                  {authMode === 'login' ? 'Mirësevini' : authMode === 'signup' ? 'Krijo Llogari' : 'Verifiko Emailin'}
+                  {authMode === 'login' ? 'Mirësevini' 
+                   : authMode === 'signup' ? 'Krijo Llogari' 
+                   : authMode === 'verify' ? 'Verifiko Emailin' 
+                   : authMode === 'forgot' ? 'Kthe Fjalëkalimin'
+                   : 'Fjalëkalimi i Ri'}
                 </h2>
                 {error && <p className="text-rose-600 dark:text-rose-400 text-sm font-bold bg-rose-100 dark:bg-rose-500/10 py-2 rounded-lg mb-2">{error}</p>}
                 {successMsg && <p className="text-emerald-600 dark:text-emerald-400 text-sm font-bold bg-emerald-100 dark:bg-emerald-500/10 py-2 rounded-lg mb-2">{successMsg}</p>}
@@ -208,42 +242,67 @@ function App() {
               <form onSubmit={handleAuthSubmit} className="space-y-5">
                 
                 {/* FORMA E REGJISTRIMIT & LOGIN */}
-                {authMode !== 'verify' && (
+                {(authMode === 'login' || authMode === 'signup') && (
                   <>
                     {authMode === 'signup' && (
                       <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="Emri i Plotë" />
                     )}
                     <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="Email" />
                     <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="••••••••" />
+                    
+                    {/* BUTONI: Harruat Fjalëkalimin? (Vetëm te Login) */}
+                    {authMode === 'login' && (
+                      <div className="flex justify-end mt-[-10px]">
+                        <button type="button" onClick={() => { setAuthMode('forgot'); setError(''); setSuccessMsg(''); }} className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 transition-colors">
+                          Harruat fjalëkalimin?
+                        </button>
+                      </div>
+                    )}
                   </>
                 )}
 
-                {/* FORMA E VERIFIKIMIT OTP */}
-                {authMode === 'verify' && (
+                {/* FORMA: FORGOT PASSWORD (Kërkon vetëm emailin) */}
+                {authMode === 'forgot' && (
+                  <>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm text-center font-medium">Shkruani emailin tuaj dhe ne do t'ju dërgojmë një kod për ta rikthyer.</p>
+                    <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="Email i llogarisë" />
+                  </>
+                )}
+
+                {/* FORMA: VERIFIKIMI OTP & RESET PASSWORD */}
+                {(authMode === 'verify' || authMode === 'reset') && (
                   <div className="space-y-4">
-                    <p className="text-slate-500 dark:text-slate-400 text-sm text-center font-medium">Shkruani kodin 6-shifror që ju dërguam në <strong className="text-slate-800 dark:text-white">{email}</strong>.</p>
+                    <p className="text-slate-500 dark:text-slate-400 text-sm text-center font-medium">Shkruani kodin 6-shifror që dërguam në <strong className="text-slate-800 dark:text-white">{email}</strong>.</p>
                     <input 
                       type="text" 
                       maxLength={6} 
                       required 
                       value={otp} 
-                      onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} // Lejon vetëm numra
+                      onChange={e => setOtp(e.target.value.replace(/\D/g, ''))} 
                       className="w-full p-4 text-center text-3xl tracking-[0.5em] font-black bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-emerald-600 dark:text-emerald-400 transition-colors duration-300" 
                       placeholder="000000" 
                     />
+                    {/* Fusha e fjalëkalimit të ri shfaqet vetëm në Reset */}
+                    {authMode === 'reset' && (
+                      <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-emerald-500 text-slate-900 dark:text-white transition-colors duration-300" placeholder="Fjalëkalimi i ri" />
+                    )}
                   </div>
                 )}
 
-                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20">
-                  {authMode === 'login' ? 'Hyr në Llogari' : authMode === 'signup' ? 'Regjistrohu Tani' : 'Verifiko Llogarinë'}
+                <button type="submit" className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-black uppercase py-4 rounded-xl transition-all shadow-lg shadow-emerald-500/20 mt-2">
+                  {authMode === 'login' ? 'Hyr në Llogari' 
+                   : authMode === 'signup' ? 'Regjistrohu Tani' 
+                   : authMode === 'verify' ? 'Verifiko Llogarinë'
+                   : authMode === 'forgot' ? 'Dërgo Kodin'
+                   : 'Ruaj Fjalëkalimin'}
                 </button>
               </form>
 
               {/* BUTONAT E NDËRRIMIT (POSHTË) */}
-              {authMode !== 'verify' && (
+              {(authMode === 'login' || authMode === 'signup' || authMode === 'forgot') && (
                 <div className="mt-8 text-center border-t border-slate-200 dark:border-slate-800 pt-6 transition-colors duration-300">
                   <button onClick={() => { setAuthMode(authMode === 'login' ? 'signup' : 'login'); setError(''); setSuccessMsg(''); }} className="text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 text-sm font-bold">
-                    {authMode === 'login' ? "Nuk keni llogari? Regjistrohu" : "Keni llogari? Hyr këtu"}
+                    {authMode === 'login' ? "Nuk keni llogari? Regjistrohu" : "Kthehu te Hyrja"}
                   </button>
                 </div>
               )}
